@@ -429,14 +429,22 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     if tags:
         desc_parts.extend(["", tags])
     yt_description = _yt_sanitize("\n".join(desc_parts).strip())
-    li_parts = [f"🚀 {title}"]
-    if imprint:
-        li_parts.extend(["", imprint])
-    elif meta_desc:
-        li_parts.extend(["", meta_desc])
-    if meta_desc and imprint and meta_desc != imprint:
-        li_parts.extend(["", f"TL;DR: {meta_desc}"])
-    li_parts.extend(["", f"📖 Full article & code receipts: {canonical_url}"])
+    def _li_defang_domains(text):
+        cleaned = re.sub(r"\b[Xx]\.com\b", "X (Twitter)", text or "")
+        return re.sub(r"\b([A-Za-z0-9_-]+)\.(com|org|net|io|ai|eu|dev|sh|py|md|nix)\b", r"\1.\u2060\2", cleaned)
+    li_imprint = _li_defang_domains(imprint)
+    li_meta = _li_defang_domains(meta_desc)
+    li_parts = [
+        f"🚀 {title}",
+        "",
+        f"📖 Full article & code receipts: {canonical_url}",
+    ]
+    if li_imprint:
+        li_parts.extend(["", li_imprint])
+    elif li_meta:
+        li_parts.extend(["", li_meta])
+    if li_meta and li_imprint and li_meta != li_imprint:
+        li_parts.extend(["", f"TL;DR: {li_meta}"])
     if tags:
         li_parts.extend(["", tags])
     linkedin_post = "\n".join(li_parts).strip()

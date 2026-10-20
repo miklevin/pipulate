@@ -8,6 +8,122 @@ import common
 
 NAVGRAPH_FILE = Path("navgraph.json")
 
+THUMB_WIDTH = 480
+THUMB_HEIGHT = 252
+RECENT_START_MARKER = "<!-- START_RECENT_POSTS -->"
+RECENT_END_MARKER = "<!-- END_RECENT_POSTS -->"
+
+
+def _ensure_post_thumbnail(target_repo_root, raw_img_path, fallback_rel="/assets/images/AI_Readiness_Consultant_RFC_9111.png"):
+    """Create or reuse a 480x252 (1.91:1) PIL thumbnail under /assets/images/thumbs/."""
+    from PIL import Image
+    rel_src = (raw_img_path or fallback_rel).strip()
+    if not rel_src.startswith("/"):
+        rel_src = "/" + rel_src
+    src_file = target_repo_root / rel_src.lstrip("/")
+    if not src_file.is_file():
+        rel_src = fallback_rel
+        src_file = target_repo_root / rel_src.lstrip("/")
+    if not src_file.is_file():
+        return rel_src
+    thumbs_dir = target_repo_root / "assets" / "images" / "thumbs"
+    thumbs_dir.mkdir(parents=True, exist_ok=True)
+    thumb_name = f"{src_file.stem}-{THUMB_WIDTH}x{THUMB_HEIGHT}.jpg"
+    thumb_file = thumbs_dir / thumb_name
+    thumb_rel = f"/assets/images/thumbs/{thumb_name}"
+    try:
+        if thumb_file.is_file() and thumb_file.stat().st_mtime >= src_file.stat().st_mtime:
+            return thumb_rel
+        im = Image.open(src_file).convert("RGBA")
+        bg = Image.new("RGB", im.size, (17, 17, 17))
+        bg.paste(im, mask=im.split()[3])
+        src_w, src_h = bg.size
+        target_ratio = THUMB_WIDTH / THUMB_HEIGHT
+        src_ratio = src_w / max(1, src_h)
+        if abs(src_ratio - target_ratio) <= 0.03:
+            out = bg.resize((THUMB_WIDTH, THUMB_HEIGHT), Image.Resampling.LANCZOS)
+        else:
+            scale = min(THUMB_WIDTH / max(1, src_w), THUMB_HEIGHT / max(1, src_h))
+            new_w = max(1, int(round(src_w * scale)))
+            new_h = max(1, int(round(src_h * scale)))
+            resized = bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            out = Image.new("RGB", (THUMB_WIDTH, THUMB_HEIGHT), (17, 17, 17))
+            out.paste(resized, ((THUMB_WIDTH - new_w) // 2, (THUMB_HEIGHT - new_h) // 2))
+        out.save(thumb_file, "JPEG", quality=82, optimize=True, progressive=True)
+        return thumb_rel
+    except Exception as exc:
+        print(f"⚠️ Thumbnail fallback for {src_file.name}: {exc}")
+        return rel_src
+
+
+def update_homepage_recent_posts(posts_dir, target_repo_root, count=10):
+    """Build 480x252 PIL thumbnails and splice the 10 newest posts into index.md."""
+    import html
+    import yaml
+    index_path = target_repo_root / "index.md"
+    if not index_path.is_file() or not posts_dir.is_dir():
+        return
+    dated = [p for p in posts_dir.glob("*.md") if common._DATED_POST_RE.match(p.name)]
+    if not dated:
+        return
+    dated.sort(key=common._post_sort_key)
+    recent = dated[-count:][::-1]
+    cards = ['<div class="recent-posts-grid">']
+    for post_path in recent:
+        raw = post_path.read_text(encoding="utf-8", errors="ignore")
+        fm = {}
+        if raw.startswith("---"):
+            parts = raw.split("---", 2)
+            if len(parts) >= 3:
+                try:
+                    fm = yaml.safe_load(parts[1]) or {}
+                except Exception:
+                    fm = {}
+        title = str(fm.get("title") or post_path.stem).strip()
+        date_str = post_path.name[:10]
+        slug = post_path.stem[11:]
+        permalink = str(fm.get("permalink") or f"/futureproof/{slug}/").strip()
+        summary = str(fm.get("meta_description") or fm.get("excerpt") or fm.get("description") or "").strip()
+        if len(summary) > 160:
+            summary = summary[:157].rsplit(" ", 1)[0] + "..."
+        img_field = fm.get("image")
+        if isinstance(img_field, dict):
+            raw_img = str(img_field.get("path") or "")
+            raw_alt = str(img_field.get("alt") or title)
+        elif isinstance(img_field, str):
+            raw_img = img_field
+            raw_alt = title
+        else:
+            raw_img = "/assets/images/AI_Readiness_Consultant_RFC_9111.png"
+            raw_alt = title
+        thumb_url = _ensure_post_thumbnail(target_repo_root, raw_img)
+        esc_title = html.escape(title, quote=True)
+        esc_alt = html.escape(raw_alt, quote=True)
+        esc_summary = html.escape(summary, quote=True)
+        cards.append(
+            f'  <a class="recent-post-card" href="{permalink}">\n'
+            f'    <img class="recent-post-thumb" src="{thumb_url}" alt="{esc_alt}" width="{THUMB_WIDTH}" height="{THUMB_HEIGHT}" loading="lazy">\n'
+            f'    <div class="recent-post-body">\n'
+            f'      <span class="recent-post-date">{date_str}</span>\n'
+            f'      <strong class="recent-post-title">{esc_title}</strong>\n'
+            f'      <span class="recent-post-desc">{esc_summary}</span>\n'
+            f'    </div>\n'
+            f'  </a>'
+        )
+    cards.append("</div>")
+    block = f"{RECENT_START_MARKER}\n" + "\n".join(cards) + f"\n{RECENT_END_MARKER}"
+    idx_text = index_path.read_text(encoding="utf-8")
+    if RECENT_START_MARKER in idx_text and RECENT_END_MARKER in idx_text:
+        pattern = re.compile(
+            re.escape(RECENT_START_MARKER) + r".*?" + re.escape(RECENT_END_MARKER),
+            re.DOTALL,
+        )
+        new_idx = pattern.sub(lambda _: block, idx_text, count=1)
+        if new_idx != idx_text:
+            index_path.write_text(new_idx, encoding="utf-8")
+        print(f"🖼️  Updated {len(recent)} recent post thumbnails in {index_path}")
+
+
 def clean_and_prep_dirs(hubs_dir):
     if hubs_dir.exists():
         shutil.rmtree(hubs_dir)
@@ -167,6 +283,7 @@ def main():
             recurse(child, next_parents)
 
     recurse(nav_tree)
+    update_homepage_recent_posts(posts_dir, target_repo_root, count=10)
 
 
 if __name__ == "__main__":
