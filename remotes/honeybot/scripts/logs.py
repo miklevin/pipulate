@@ -23,21 +23,29 @@ from db import db, KNOWN_BOTS  # Import the list
 
 # --- Configuration ---
 STRIP_MOZILLA_PREFIX = False  # Set to True to save space in bottom panels
-HUD_TABLE_ROWS = 17           # Visible data rows in both bottom HUD tables (was 12; +5 rows)
+HUD_TABLE_ROWS = 15           # Visible data rows in both bottom HUD tables (tuned from 17 to 15)
 HUD_PANEL_HEIGHT = HUD_TABLE_ROWS + 4  # +4 rows for top border, panel title, header rule, and column headers
 
 # A hidden console to render styles into ANSI codes for the Log widget
 # We set a massive width to prevent the console from hard-wrapping the text before the Log widget gets it
 OFFSCREEN_CONSOLE = Console(force_terminal=True, color_system="truecolor", file=open(os.devnull, "w"), width=100000)
 
-BOT_STYLE = "bold orange1"  # Amazon Orange
-SPOOF_STYLE = "bold red"    # Cloaked / IP-spoofed bot identity
+BOT_STYLE = "bold orange1"             # 🟠 Self-asserted Bot / Agent UA
+VERIFIED_STYLE = "bold deep_sky_blue1" # 🔷 RFC 9421 / Web Bot Auth Verified Agent
+SPOOF_STYLE = "bold red"               # 🛑 Cloaked / IP-spoofed Bot Identity
 SPOOF_PREFIX = "[SPOOFED-IP] "
+VERIFIED_PREFIX = "[VERIFIED] "
 GOOGLE_IP_PREFIXES = (
     "66.249.", "64.233.", "72.14.", "74.125.", "108.177.",
     "142.250.", "142.251.", "172.217.", "173.194.", "192.178.",
     "207.126.", "209.85.", "216.58.", "216.239.",
 )
+_COMPAT_BOT_RE = re.compile(r"compatible;\s*([A-Za-z0-9._-]+)", re.IGNORECASE)
+_KEYWORD_BOT_RE = re.compile(
+    r"\b([A-Za-z0-9._-]*(?:bot|spider|crawler|agent|radar|worker|mcp|research|scraper|fetcher|inspector|archiver|httpx|requests|axios|curl|wget|aiohttp|urllib|go-http-client|python)[A-Za-z0-9._-]*)",
+    re.IGNORECASE,
+)
+_LEADING_AGENT_RE = re.compile(r"^([A-Za-z0-9._-]+?)(?:/[\d.]+|\s+\(|\s*$)")
 
 try:
     from db import db  # Import our new database singleton
@@ -50,7 +58,7 @@ ANSI_ESCAPE = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
 LOG_PATTERN = re.compile(
     r'(?P<ip>[\d\.]+) - - \[(?P<time>.*?)\] "(?P<request>.*?)" (?P<status>\d+) (?P<bytes>\d+) '
     r'"(?P<referrer>.*?)" "(?P<ua>.*?)"(?: Accept:"(?P<accept>.*?)" MarkdownServed:(?P<md>\d))?'
-    r'(?: Host:"(?P<host>.*?)")?'
+    r'(?: Host:"(?P<host>.*?)")?(?: Sig:"(?P<sig>.*?)")?'
 )
 
 class SonarApp(App):
@@ -168,49 +176,79 @@ class SonarApp(App):
         """True when a request claims Googlebot from outside Google's crawler IP blocks."""
         return "Googlebot" in (ua_str or "") and not str(ip_str or "").startswith(GOOGLE_IP_PREFIXES)
 
-    def stylize_agent(self, agent_str, is_spoof=False):
+    def is_verified_bot(self, sig_str):
+        """True when RFC 9421 / IETF Web Bot Auth Signature-Agent header is present."""
+        s = (sig_str or "").strip()
+        return bool(s and s != "-")
+
+    def detect_bot_token(self, ua_str):
+        """Extract the self-identifying bot/agent token from a User-Agent string, or None for standard browsers."""
+        s = (ua_str or "").strip()
+        if not s or s == "-":
+            return None
+        for bot_name in KNOWN_BOTS:
+            if bot_name in s:
+                return bot_name
+        for m in _COMPAT_BOT_RE.finditer(s):
+            tok = m.group(1).strip(";/() ")
+            if tok and tok.upper() not in ("MSIE", "MOZILLA"):
+                return tok
+        m_kw = _KEYWORD_BOT_RE.search(s)
+        if m_kw:
+            tok = m_kw.group(1).strip(";/() ")
+            if tok.lower() not in ("mozilla", "applewebkit", "safari", "chrome", "gecko", "khtml", "mobile"):
+                return tok
+        if not s.startswith("Mozilla/"):
+            m_lead = _LEADING_AGENT_RE.match(s)
+            if m_lead:
+                return m_lead.group(1).strip()
+        return None
+
+    def stylize_agent(self, agent_str, is_spoof=False, is_verified=False, bot_token=None):
         """Converts a raw UA string into a Rich Text object with highlights."""
         agent_str = agent_str.strip()
         text = Text(agent_str)
-
-        # Default styling (Broadened to catch browsers even if "Mozilla/5.0" is stripped)
-        # We look for "Mozilla" OR "AppleWebKit" OR "Gecko" to identify standard browser chains
-        if ("Mozilla" in agent_str or "AppleWebKit" in agent_str) and "compatible" not in agent_str:
+        if ("Mozilla" in agent_str or "AppleWebKit" in agent_str) and "compatible" not in agent_str and not bot_token:
             text.stylize("dim white")
-            
-        # Highlight ANY known bot (Red if IP-spoofed, Orange if genuine)
-        hl_style = SPOOF_STYLE if is_spoof else BOT_STYLE
+        hl_style = SPOOF_STYLE if is_spoof else (VERIFIED_STYLE if is_verified else BOT_STYLE)
+        matched_any = False
         for bot_name in KNOWN_BOTS:
             if bot_name in agent_str:
                 text.highlight_regex(re.escape(bot_name), hl_style)
-                
+                matched_any = True
+        if not matched_any and bot_token and bot_token in agent_str:
+            text.highlight_regex(re.escape(bot_token), hl_style)
         return text
 
     def extract_and_stylize(self, agent_str):
-        """Returns a tuple: (Styled Identity, Dimmed Full String)"""
+        """Returns a tuple: (Styled Identity with 🛑/🔷/🟠 shape badge, Styled Full String)"""
         raw = agent_str.strip()
         is_spoof = raw.startswith(SPOOF_PREFIX)
         if is_spoof:
             raw = raw[len(SPOOF_PREFIX):].strip()
+        is_verified = raw.startswith(VERIFIED_PREFIX)
+        if is_verified:
+            raw = raw[len(VERIFIED_PREFIX):].strip()
         clean_ua = raw.replace("Mozilla/5.0 ", "")
-        
-        identity = "Unknown"
-        identity_style = "dim white"
-        
-        # Find the specific Bot Identity
-        for bot_name in KNOWN_BOTS:
-            if bot_name in clean_ua:
-                identity = bot_name
-                identity_style = SPOOF_STYLE if is_spoof else BOT_STYLE
-                break
-        if is_spoof and getattr(self, "spoof_flip", False):
-            identity = "Cloaking"
-                
-        # Format the outputs: Raw Signature stays honest to the wire, colored red when spoofed
-        id_text = Text(identity, style=identity_style)
-        full_text = Text(clean_ua, style="red" if is_spoof else "dim green")
-        
-        return id_text, full_text
+        bot_token = self.detect_bot_token(clean_ua)
+        if is_spoof:
+            label = "Cloaking" if getattr(self, "spoof_flip", False) else (bot_token or "Googlebot")
+            identity = f"🛑 {label}"
+            identity_style = SPOOF_STYLE
+            sig_style = "red"
+        elif is_verified:
+            identity = f"🔷 {bot_token or 'Verified'}"
+            identity_style = VERIFIED_STYLE
+            sig_style = "deep_sky_blue1"
+        elif bot_token:
+            identity = f"🟠 {bot_token}"
+            identity_style = BOT_STYLE
+            sig_style = "dim green"
+        else:
+            identity = "👤 Browser/Other"
+            identity_style = "dim white"
+            sig_style = "dim white"
+        return Text(identity, style=identity_style), Text(clean_ua, style=sig_style)
 
     def refresh_tables(self):
         """Updates both Intelligence tables from DB."""
@@ -371,23 +409,17 @@ class SonarApp(App):
         
         ua = data['ua']
         is_spoof = self.is_spoofed_bot(data.get('ip'), ua)
-        
-        # 1. Get the base styled text from our helper
-        # This handles the dimming of Mozilla AND the regex highlighting of Bots
-        ua_text = self.stylize_agent(ua, is_spoof=is_spoof)
-        
-        # 2. Add the prefix icon manually (since stylize_agent just does text)
-        prefix = ""
-        if "Mozilla" in ua and "compatible" not in ua:
+        is_verified = self.is_verified_bot(data.get('sig'))
+        bot_token = self.detect_bot_token(ua)
+        ua_text = self.stylize_agent(ua, is_spoof=is_spoof, is_verified=is_verified, bot_token=bot_token)
+        if is_spoof:
+            prefix = "🛑 "
+        elif is_verified:
+            prefix = "🔷 "
+        elif bot_token:
+            prefix = "🟠 "
+        else:
             prefix = "👤 "
-        elif "python" in ua.lower():
-            prefix = "🔧 "
-        
-        # Check if any known bot is in there to add the Robot (or Cloaking) Icon
-        for bot_name in KNOWN_BOTS:
-            if bot_name in ua:
-                prefix = "🎭 " if is_spoof else "🤖 "
-                break
 
         # Dynamic styling for the requested path
         path_style = "blue"

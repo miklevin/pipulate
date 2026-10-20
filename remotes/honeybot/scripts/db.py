@@ -329,10 +329,12 @@ class HoneyDB:
         conn = self.get_conn()
         cur = conn.cursor()
         # We explicitly look for the js_confirm.gif trapdoor.
-        # We dropped mathjax and d3.js because they don't prove CAPTCHA execution.
+        # Applies non-local IP filtering, claude-code version rollup, and [SPOOFED-IP] tagging.
         sql = f"""
             SELECT
                 CASE
+                    WHEN ua.value LIKE 'Claude-User (claude-code/%'
+                    THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
                     WHEN {self._GOOGLEBOT_SPOOF_COND}
                     THEN '[SPOOFED-IP] ' || ua.value
                     ELSE ua.value
@@ -343,6 +345,9 @@ class HoneyDB:
             JOIN user_agents ua ON logs.ua_id = ua.id
             JOIN paths p ON logs.path_id = p.id
             WHERE p.value LIKE '%js_confirm.gif%'
+              AND i.value NOT LIKE '127.%'
+              AND i.value NOT LIKE '10.%'
+              AND i.value NOT LIKE '192.168.%'
               {self._BROWSER_FILTER}  /* Apply Noise Filter */
             GROUP BY agent
             ORDER BY total DESC

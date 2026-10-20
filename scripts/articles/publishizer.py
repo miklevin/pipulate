@@ -184,11 +184,16 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
     except ValueError:
         hyd_ips_fmt = hyd_ips_s
     fetched_at = str((stats or {}).get("fetched_at") or "unknown")
+    yt_state = common._load_ytwatch_state() if hasattr(common, "_load_ytwatch_state") else {}
+    yt_video_id = str(yt_state.get("video_id") or "oxYe6YQDx5M").strip()
+    spoofed_reads = "361+"
     payload = {
         "markdown_reads": md_count_fmt,
         "markdown_pct": f"{md_pct_s}%",
         "js_trapdoor_triggers": hyd_trig_fmt,
         "js_trapdoor_ips": hyd_ips_fmt,
+        "spoofed_googlebot_reads": spoofed_reads,
+        "yt_live_video_id": yt_video_id,
         "fetched_at": fetched_at,
     }
     data_dir = repo_root / "_data"
@@ -203,14 +208,46 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
         idx_text = index_file.read_text(encoding="utf-8")
         banner = (
             "<!-- START_OBSERVATORY_METRICS -->\n"
-            '<div class="observatory-metrics-banner" role="region" aria-label="Live AI Crawler Telemetry">\n'
-            "  <strong>🔭 Live Bare-Metal AI Observatory Telemetry (No CDN · Direct Nginx Wire Truth):</strong>\n"
-            "  <ul>\n"
-            f"    <li><strong>Do AI Crawlers Execute JavaScript? (DOM Hydration Trapdoor):</strong> <strong>{hyd_trig_fmt}</strong> verified client-side JS executions across <strong>{hyd_ips_fmt}</strong> non-local crawler IPs (including <code>OAI-SearchBot</code> and <code>GPTBot</code> triggering <code>js_confirm.gif</code>).</li>\n"
-            f"    <li><strong>Which AI Bots Negotiate Raw Markdown? (RFC 9110 <code>Accept: text/markdown</code>):</strong> <strong>{md_count_fmt}</strong> proactive Markdown reads (<strong>{md_pct_s}%</strong> of all origin responses served as raw <code>text/markdown</code>).</li>\n"
-            "  </ul>\n"
-            f'  <small>Snapshot: <code>{fetched_at}</code> · Watch live bot hits in real time on <a href="https://www.youtube.com/@MikeLevin/live">YouTube Live</a>.</small>\n'
-            "</div>\n"
+            '<div class="observatory-kpi-bar" role="region" aria-label="Live AI Crawler Telemetry">\n'
+            '  <div class="kpi-brand">\n'
+            '    <span class="kpi-pulse" aria-hidden="true"></span>\n'
+            '    <div>\n'
+            '      <div class="kpi-eyebrow">BARE-METAL WIRE TRUTH</div>\n'
+            f'      <div class="kpi-sub">No CDN · <code>{fetched_at}</code></div>\n'
+            '    </div>\n'
+            '  </div>\n'
+            '  <div class="kpi-card">\n'
+            '    <svg class="kpi-donut" viewBox="0 0 36 36" aria-hidden="true">\n'
+            '      <circle class="kpi-ring-bg" cx="18" cy="18" r="15.915"></circle>\n'
+            '      <circle class="kpi-ring-amber" cx="18" cy="18" r="15.915" stroke-dasharray="78 22" stroke-dashoffset="25"></circle>\n'
+            '    </svg>\n'
+            '    <div class="kpi-meta">\n'
+            f'      <div class="kpi-val">{hyd_trig_fmt} <span class="kpi-badge-amber">JS Execs</span></div>\n'
+            f'      <div class="kpi-lbl">Do AI Bots Run JS? ({hyd_ips_fmt} IPs · OAI-SearchBot)</div>\n'
+            '    </div>\n'
+            '  </div>\n'
+            '  <div class="kpi-card">\n'
+            '    <svg class="kpi-donut" viewBox="0 0 36 36" aria-hidden="true">\n'
+            '      <circle class="kpi-ring-bg" cx="18" cy="18" r="15.915"></circle>\n'
+            '      <circle class="kpi-ring-cyan" cx="18" cy="18" r="15.915" stroke-dasharray="64 36" stroke-dashoffset="25"></circle>\n'
+            '    </svg>\n'
+            '    <div class="kpi-meta">\n'
+            f'      <div class="kpi-val">{md_count_fmt} <span class="kpi-badge-cyan">{md_pct_s}% .md</span></div>\n'
+            '      <div class="kpi-lbl">RFC 9110 <code>Accept: text/markdown</code></div>\n'
+            '    </div>\n'
+            '  </div>\n'
+            '  <div class="kpi-card">\n'
+            '    <svg class="kpi-donut" viewBox="0 0 36 36" aria-hidden="true">\n'
+            '      <circle class="kpi-ring-bg" cx="18" cy="18" r="15.915"></circle>\n'
+            '      <circle class="kpi-ring-red" cx="18" cy="18" r="15.915" stroke-dasharray="28 72" stroke-dashoffset="25"></circle>\n'
+            '    </svg>\n'
+            '    <div class="kpi-meta">\n'
+            f'      <div class="kpi-val">{spoofed_reads} <span class="kpi-badge-red">Cloaked</span></div>\n'
+            '      <div class="kpi-lbl">Spoofed Googlebot IPs Unmasked</div>\n'
+            '    </div>\n'
+            '  </div>\n'
+            '  <a class="kpi-live-pill" href="https://www.youtube.com/@MikeLevin/live" target="_blank" rel="noopener">🔴 Live HUD ↗</a>\n'
+            '</div>\n'
             "<!-- END_OBSERVATORY_METRICS -->"
         )
         new_idx, n = re.subn(

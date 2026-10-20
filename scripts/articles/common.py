@@ -521,6 +521,14 @@ def ensure_indexnow_key_file(target_key="1"):
         if existing != key:
             key_file.write_text(key + "\n", encoding="utf-8")
             print(f"🔑 Materialized IndexNow verification file: {repo_root}/{key[:8]}....txt")
+        if (repo_root / ".git").exists():
+            import subprocess
+            subprocess.run(
+                ["git", "-C", str(repo_root), "add", "--", key_file.name],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
     return key, key_file
 
 
