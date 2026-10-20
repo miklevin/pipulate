@@ -388,10 +388,11 @@ def get_broadcast_kit(target_key="1", slug_match=None):
         hero_prompt = hero_match.group(1).strip()
     else:
         hero_prompt = (
-            f"Wide 16:9 / 1.91:1 (1200x630 Open Graph) cinematic illustration for '{title}', "
-            "centered focal metaphor in the 1200x630 safe zone, dark obsidian-slate (#111111) "
-            "background, high-contrast cyan and warm brass lighting, graphic-novel ink-and-wash "
-            "precision, no text overlays."
+            f"Wide 16:9 full-bleed widescreen cinematic illustration for '{title}', "
+            "vertically centered focal metaphor, dark obsidian-slate (#111111) environment "
+            "extending continuously to all four edges, high-contrast cyan and warm brass lighting, "
+            "graphic-novel ink-and-wash precision. Full-bleed edge-to-edge composition filling "
+            "100% of the canvas with no borders, no frames, no matting, no margins, and no text overlays."
         )
     yaml_match = re.search(
         r"###\s*🖼️\s*YAML Frontmatter Image Override\s*\n```[a-zA-Z0-9]*\n(.*?)\n```",
@@ -633,12 +634,13 @@ def _ensure_yt_studio_thumbnail(hero_img_path):
         bg.paste(im, mask=im.split()[3])
         target_w, target_h = 1280, 720
         src_w, src_h = bg.size
-        scale = min(target_w / max(1, src_w), target_h / max(1, src_h))
-        new_w = max(1, int(round(src_w * scale)))
-        new_h = max(1, int(round(src_h * scale)))
+        scale = max(target_w / max(1, src_w), target_h / max(1, src_h))
+        new_w = max(target_w, int(round(src_w * scale)))
+        new_h = max(target_h, int(round(src_h * scale)))
         resized = bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
-        canvas = Image.new("RGB", (target_w, target_h), (17, 17, 17))
-        canvas.paste(resized, ((target_w - new_w) // 2, (target_h - new_h) // 2))
+        left = (new_w - target_w) // 2
+        top = (new_h - target_h) // 2
+        canvas = resized.crop((left, top, left + target_w, top + target_h))
         canvas.save(YT_STUDIO_THUMB_PATH, "JPEG", quality=88, optimize=True, progressive=True)
         return str(YT_STUDIO_THUMB_PATH)
     except Exception:

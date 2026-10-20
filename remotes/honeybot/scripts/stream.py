@@ -488,15 +488,14 @@ def conjure_patronus(name, duration=3.5):
         pass
 
 
-# --- The UPDATING Standby Music (Jeopardy think-music) ---
-# The wav lives in repo NEGATIVE SPACE: shipped once by hand (scp) to the
-# path below, never committed. A fresh Honeybot spun from the public repo
-# simply lacks the file and start_updating_music() no-ops -- graceful
-# degradation via a single Path.exists() check. Playback rides the exact
-# path the probes proved end-to-end: aplay -D default -> PipeWire ALSA ->
-# Dummy Output sink -> OBS monitor capture -> YouTube. No hardware, no
-# audio group, no ACLs -- the "speaker" is a virtual sink.
-MUSIC_FILE = Path.home() / ".local/share/honeybot/jeopardy.wav"
+# --- The UPDATING Standby Sound (Non-copyright clock tick) ---
+# Uses the CC0 assets/sounds/tick.wav shipped in the repo and synced via
+# nixops.sh, replacing the retired copyright-flagged Jeopardy wav.
+_TICK_CANDIDATES = (
+    Path(__file__).resolve().parents[1] / "assets/sounds/tick.wav",
+    Path(__file__).resolve().parents[3] / "assets/sounds/tick.wav",
+)
+MUSIC_FILE = next((p for p in _TICK_CANDIDATES if p.exists()), _TICK_CANDIDATES[0])
 MUSIC_MARKER = "honeybot-updating-music"
 
 
@@ -512,7 +511,7 @@ def start_updating_music():
         return None
     try:
         return subprocess.Popen(
-            ["sh", "-c", f'while :; do aplay -q -D default "{MUSIC_FILE}"; done # {MUSIC_MARKER}'],
+            ["sh", "-c", f'while :; do aplay -q -D default "{MUSIC_FILE}"; sleep 1; done # {MUSIC_MARKER}'],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             preexec_fn=os.setsid,

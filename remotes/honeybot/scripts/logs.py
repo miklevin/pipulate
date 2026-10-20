@@ -213,11 +213,11 @@ class SonarApp(App):
             table.clear()
             table.add_row("ERROR", "None", str(e)[:40])
 
-        # 2. Update Markdown Readers (Right)
+        # 2. Update Markdown Negotiators (Right - strict RFC 9110 Accept: text/markdown)
         try:
             table = self.query_one("#md_table", DataTable)
             table.clear()
-            data = db.get_markdown_readers(limit=50)
+            data = db.get_content_neg_agents(limit=50)
             if not data:
                 table.add_row("-", "None", "Waiting for data...")
             else:

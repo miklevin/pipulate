@@ -38,13 +38,14 @@ ssh $TARGET "chmod +x ~/git/mikelev.in.git/hooks/post-receive"
 
 echo "🚀 Syncing Scripts (New Location)..."
 # Ensure the directory exists
-ssh $TARGET "mkdir -p ~/www/mikelev.in/scripts ~/www/mikelev.in/imports"
+ssh $TARGET "mkdir -p ~/www/mikelev.in/scripts ~/www/mikelev.in/imports ~/www/mikelev.in/assets/sounds"
 
 # Sync the new dedicated script folder
 rsync --delete -av remotes/honeybot/scripts/ $TARGET:~/www/mikelev.in/scripts/
 
-# Surgical sync of the visual display and patronus engine assets
+# Surgical sync of the visual display, patronus engine, and CC0 sound assets
 rsync -av imports/ascii_displays.py $TARGET:~/www/mikelev.in/imports/
+rsync -av assets/sounds/tick.wav $TARGET:~/www/mikelev.in/assets/sounds/tick.wav
 
 echo "🚀 Syncing NPvg pad (one address, two bodies)..."
 ssh $TARGET "mkdir -p ~/www/npvg.org"
