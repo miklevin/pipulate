@@ -431,7 +431,7 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     yt_description = _yt_sanitize("\n".join(desc_parts).strip())
     def _li_defang_domains(text):
         cleaned = re.sub(r"\b[Xx]\.com\b", "X (Twitter)", text or "")
-        return re.sub(r"\b([A-Za-z0-9_-]+)\.(com|org|net|io|ai|eu|dev|sh|py|md|nix)\b", r"\1.\u2060\2", cleaned)
+        return re.sub(r"\b([A-Za-z0-9_-]+)\.(com|org|net|io|ai|eu|dev|sh|py|md|nix)\b", "\\1.\u2060\\2", cleaned)
     li_imprint = _li_defang_domains(imprint)
     li_meta = _li_defang_domains(meta_desc)
     li_parts = [
