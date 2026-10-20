@@ -402,11 +402,22 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     else:
         safe_alt = title.replace('"', '\\"')
         hero_yaml = f'image:\n  path: /assets/images/{slug}.jpeg\n  alt: "{safe_alt}"'
-    hero_img_dest = str(post_path.parent.parent / "assets" / "images" / f"{slug}.jpeg")
+    repo_root = post_path.parent.parent
+    fm_img = fm.get("image")
+    fm_img_rel = ""
+    if isinstance(fm_img, dict):
+        fm_img_rel = str(fm_img.get("path") or "").strip()
+    elif isinstance(fm_img, str):
+        fm_img_rel = fm_img.strip()
+    if fm_img_rel:
+        hero_img_dest = str(repo_root / fm_img_rel.lstrip("/"))
+    else:
+        hero_img_dest = str(repo_root / "assets" / "images" / f"{slug}.jpeg")
     tags = " ".join(re.findall(r"#[A-Za-z0-9_]+", tweet))
     yt_title = format_youtube_title(title)
     desc_parts = [
         f"📖 Read the full article: {canonical_url}",
+        f"📬 Edge SEO & AI-Readiness Consulting: {base_url}/#consulting (Email: mike@mikelev.in with [RFC9111] in subject)",
         "",
         f"🎙️ Now reading live on the Honeybot AI Observatory: \"{title}\"",
     ]
@@ -424,6 +435,7 @@ def get_broadcast_kit(target_key="1", slug_match=None):
         "• Agents sending 'Accept: text/markdown' (RFC 9110) receive clean raw Markdown.",
         "• Agents executing JavaScript trigger the DOM trapdoor sensor.",
         "• Zero-Agent Airlock: Deterministic NixOS + Piper TTS player piano (chat reaches a human, never an LLM shell).",
+        f"• Ephemeral Broadcast: Continuous streams >12h are not archived by YouTube. Permanent text & code: {base_url}/latest",
         f"• AI Context Manifest: {base_url}/llms.txt",
         "• Stack: NPvg (Nix, Python, Neovim, Git) — https://pipulate.com | https://qamy.ai",
     ])
@@ -604,6 +616,34 @@ def drop_pebble_pings(target_key="1", slug_match=None, dry_run=False):
     return 0
 
 
+YT_STUDIO_THUMB_PATH = Path.home() / "Downloads" / "yt_thumb_latest.jpg"
+
+
+def _ensure_yt_studio_thumbnail(hero_img_path):
+    """If hero_img_path exists on disk, generate a 1280x720 (16:9) YouTube Studio thumbnail at ~/Downloads/yt_thumb_latest.jpg."""
+    src = Path(hero_img_path) if hero_img_path else None
+    if not src or not src.is_file():
+        return None
+    try:
+        from PIL import Image
+        YT_STUDIO_THUMB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        im = Image.open(src).convert("RGBA")
+        bg = Image.new("RGB", im.size, (17, 17, 17))
+        bg.paste(im, mask=im.split()[3])
+        target_w, target_h = 1280, 720
+        src_w, src_h = bg.size
+        scale = min(target_w / max(1, src_w), target_h / max(1, src_h))
+        new_w = max(1, int(round(src_w * scale)))
+        new_h = max(1, int(round(src_h * scale)))
+        resized = bg.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        canvas = Image.new("RGB", (target_w, target_h), (17, 17, 17))
+        canvas.paste(resized, ((target_w - new_w) // 2, (target_h - new_h) // 2))
+        canvas.save(YT_STUDIO_THUMB_PATH, "JPEG", quality=88, optimize=True, progressive=True)
+        return str(YT_STUDIO_THUMB_PATH)
+    except Exception:
+        return None
+
+
 def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     """Print or copy the broadcast kit (mode: help | card | hero | yaml | tweet | linkedin | title | desc)."""
     bar = "=" * 72
@@ -650,9 +690,12 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
         return 1
     if mode == "hero":
         copied = _copy_to_clipboard(kit["hero_prompt"])
+        yt_thumb = _ensure_yt_studio_thumbnail(kit["hero_img_dest"])
         print(kit["hero_prompt"])
         print(f"\n{'📋 Copied Hero Banner Image Prompt to clipboard!' if copied else 'ℹ️  (Non-TTY: printed only)'}")
         print(f"🖼️  Save/resize 1200x630 (<500 KB) to: {kit['hero_img_dest']}")
+        if yt_thumb:
+            print(f"📺 Ready 1280x720 (16:9) YouTube Studio Thumbnail: {yt_thumb}")
         print("👉 Next step: type `ytyaml` to copy the YAML frontmatter block.")
         return 0
     if mode == "yaml":
@@ -702,7 +745,11 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
     print("📝 YOUTUBE LIVE DESCRIPTION (type `ytdesc` to copy):")
     print(kit["yt_description"])
     print(thin)
-    print("🎛️  Quick Words:  yt (help) | ythero | ytyaml | tweet | linkedin | ytpebble | yttitle | ytdesc | ytcard | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
+    yt_thumb = _ensure_yt_studio_thumbnail(kit["hero_img_dest"])
+    if yt_thumb:
+        print(thin)
+        print(f"📺 YT STUDIO THUMBNAIL (1280x720 16:9): {yt_thumb} (Checklist: Upload thumb + Enable DVR)")
+    print("🎛️  Quick Words:  yt (help) | ythero | ytyaml | tweet | linkedin | ytpebble | yttitle | ytdesc | ytcard | yttop | ytsay | ytwatch | ytping | ytroll | ytbell | ytstatus")
     print(thin)
     print(f"🔗 Preview URL:   {kit['preview_url']}")
     print(f"✏️  Edit Command:  vim {kit['path']}")
@@ -1605,14 +1652,90 @@ def run_youtube_watch(
         return 0
 
 
+def fetch_youtube_top_videos(channel_or_url=None, limit=12, dry_run=False):
+    """Keyless HitTail-style leaderboard of top-performing YouTube videos & live streams."""
+    import urllib.request
+    raw_ch = (channel_or_url or _get_vault_var("PIPULATE_YT_CHANNEL") or "@MikeLevin").strip()
+    if raw_ch.startswith(("http://", "https://")):
+        base_ch = raw_ch.rstrip("/")
+        for suffix in ("/live", "/streams", "/videos"):
+            if base_ch.endswith(suffix):
+                base_ch = base_ch[: -len(suffix)]
+    elif raw_ch.startswith("@"):
+        base_ch = f"https://www.youtube.com/{raw_ch}"
+    else:
+        base_ch = f"https://www.youtube.com/@{raw_ch}"
+    if dry_run:
+        sample = 'var ytInitialData = {"contents":{"videoRenderer":{"videoId":"abc12345678","title":{"runs":[{"text":"Max Headroom Test"}]},"viewCountText":{"simpleText":"1,420 views"}}}};'
+        parsed = _extract_yt_json(sample, "ytInitialData =")
+        found = [d for d in _walk_dicts(parsed) if "videoRenderer" in d]
+        ok = len(found) == 1
+        print(f"📊 [DRY RUN] YouTube Top Videos Radar: base={base_ch} | parser_ok={ok}")
+        return 0 if ok else 1
+    seen = {}
+    for tab in ("streams", "videos"):
+        tab_url = f"{base_ch}/{tab}"
+        req = urllib.request.Request(
+            tab_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36",
+                "Accept-Language": "en-US,en;q=0.9",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                html_text = resp.read().decode("utf-8", errors="replace")
+        except Exception as exc:
+            print(f"⚠️ Could not fetch {tab_url}: {exc}")
+            continue
+        initial = _extract_yt_json(html_text, "ytInitialData =")
+        for d in _walk_dicts(initial):
+            vr = d.get("videoRenderer")
+            if not isinstance(vr, dict):
+                continue
+            vid = str(vr.get("videoId") or "")
+            if not vid or vid in seen:
+                continue
+            t_obj = vr.get("title") or {}
+            title = str(t_obj.get("simpleText") or "")
+            if not title and isinstance(t_obj.get("runs"), list):
+                title = "".join(str(r.get("text") or "") for r in t_obj["runs"] if isinstance(r, dict))
+            vc_obj = vr.get("viewCountText") or {}
+            vc_raw = str(vc_obj.get("simpleText") or "")
+            if not vc_raw and isinstance(vc_obj.get("runs"), list):
+                vc_raw = "".join(str(r.get("text") or "") for r in vc_obj["runs"] if isinstance(r, dict))
+            digits = re.sub(r"[^\d]", "", vc_raw)
+            views = int(digits) if digits else 0
+            pub_raw = str((vr.get("publishedTimeText") or {}).get("simpleText") or "LIVE/Recent")
+            len_raw = str((vr.get("lengthText") or {}).get("simpleText") or "LIVE")
+            seen[vid] = {
+                "video_id": vid,
+                "kind": "STREAM" if tab == "streams" else "VIDEO",
+                "views": views,
+                "views_raw": vc_raw or "0 views",
+                "age": pub_raw,
+                "length": len_raw,
+                "title": title.strip(),
+                "url": f"https://www.youtube.com/watch?v={vid}",
+            }
+    ranked = sorted(seen.values(), key=lambda x: x["views"], reverse=True)[: max(1, int(limit))]
+    print(f"📊 YouTube Title & Topic Radar ({base_ch} — Top {len(ranked)} of {len(seen)} sampled):")
+    for idx, item in enumerate(ranked, 1):
+        print(
+            f"  {idx:2d}. [{item['views']:5d} views] ({item['kind']:6s} | {item['length']:>8s} | {item['age']}) "
+            f"{item['title']} -> {item['url']}"
+        )
+    return 0
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pipulate article common utilities & broadcast kit.")
     add_standard_arguments(parser)
     parser.add_argument(
         "--broadcast",
-        choices=("help", "card", "hero", "yaml", "tweet", "linkedin", "pebble", "title", "desc", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
+        choices=("help", "card", "hero", "yaml", "tweet", "linkedin", "pebble", "title", "desc", "top", "status", "bell", "stop", "start", "roll", "enable-ws", "say", "ping", "watch"),
         default="card",
-        help="Print/copy broadcast kit or control Honeybot (help|card|hero|yaml|tweet|linkedin|pebble|title|desc|status|bell|stop|start|roll|enable-ws|say|ping|watch).",
+        help="Print/copy broadcast kit or control Honeybot (help|card|hero|yaml|tweet|linkedin|pebble|title|desc|top|status|bell|stop|start|roll|enable-ws|say|ping|watch).",
     )
     parser.add_argument(
         "-s", "--slug",
@@ -1771,6 +1894,9 @@ if __name__ == "__main__":
                 dry_run=cli_args.dry_run,
             )
         )
+    if cli_args.broadcast == "top":
+        top_limit = int(cli_args.message[0]) if (cli_args.message and cli_args.message[0].isdigit()) else 12
+        sys.exit(fetch_youtube_top_videos(channel_or_url=cli_args.channel, limit=top_limit, dry_run=cli_args.dry_run))
     if cli_args.broadcast == "pebble":
         sys.exit(drop_pebble_pings(cli_args.target, slug_match=cli_args.slug, dry_run=cli_args.dry_run))
     if cli_args.broadcast in ("status", "bell", "stop", "start", "roll", "enable-ws"):

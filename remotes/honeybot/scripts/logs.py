@@ -101,7 +101,7 @@ class SonarApp(App):
        but standard Footer widget handles it well. */
     """
 
-    TITLE = "Honeybot Sonar of https://mikelev.in/"
+    TITLE = "Honeybot Live Observatory — https://mikelev.in (RFC 9110 Markdown vs. JS Trapdoor)"
 
     # --- NEW: Banish the interactive Command Palette ---
     ENABLE_COMMAND_PALETTE = False
@@ -120,12 +120,12 @@ class SonarApp(App):
             
             # LEFT: Javascript Executors
             with Vertical(classes="half_panel"):
-                yield Label("⚡ JAVASCRIPT EXECUTORS (Caught by CAPTCHA)", classes="panel_header")
+                yield Label("⚡ DOM HYDRATION TRAPDOOR (Bots Executing JS)", classes="panel_header")
                 yield DataTable(id="js_table")
             
             # RIGHT: Markdown Seekers
             with Vertical(classes="half_panel"):
-                yield Label("🧠 ACCEPTS MARKDOWN (Negotiated / Traced)", classes="panel_header")
+                yield Label("🧠 RFC 9110 MARKDOWN NEGOTIATORS (Accept: text/markdown)", classes="panel_header")
                 yield DataTable(id="md_table")
         # ----------------------------------------
             
@@ -391,6 +391,8 @@ class SonarApp(App):
 
         text.append(ip_display)
         text.append("  ") # Just space
+        if data.get('md') == '1':
+            text.append("[RFC9110:MD] ", style="bold black on green")
         text.append(f"{method:4} ", style="bold")
         text.append(f"{path} ", style=path_style)
         text.append(f"[{status}] ", style=status_style)

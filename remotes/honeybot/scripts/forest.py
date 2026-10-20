@@ -175,4 +175,26 @@ STATION_SEGMENTS = [
             "break in live over this channel at any moment. Leave a message in the chat and say hello."
         )),
     ],
+    [
+        # Bead 6: The Zero-Agent Airlock, 12-Hour Ephemeral FOMO, and Direct Contact.
+        ("CARD", {
+            "label": "ZERO-AGENT\nAIRLOCK",
+            "say": (
+                "A quick note for anyone trying to type ignore previous instructions in the live chat: "
+                "there is no language model running inside this broadcast loop."
+            ),
+        }),
+        ("PATRONUS", {"key": "honeybot_pipeline", "duration": 80.0}),
+        ("WAIT", 2),
+        ("SAY", (
+            "What you are watching is a deterministic Nix O S player piano. Nginx serves static files, "
+            "SQLite records the wire telemetry, and Piper synthesizes pre-compiled Markdown into speech. "
+            "Chat messages ring a pocket bell for a human engineer, never an automated shell."
+        )),
+        ("SAY", (
+            "Also note: YouTube permanently discards continuous live streams that run over twelve hours. "
+            "You may never see this exact broadcast segment again. For permanent articles, code receipts, "
+            "and edge consulting, visit Mike Lev dot I N."
+        )),
+    ],
 ]
