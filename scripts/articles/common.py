@@ -265,6 +265,7 @@ def _write_text_preserving_mtime(path, text, preserve_mtime):
 # Go-Go-Gadget Broadcast Kit (X.com Promo Tweet + YouTube Live Cut-and-Roll)
 # ----------------------------------------------------------------------------
 YT_TITLE_LIMIT = 100
+CONTACT_EMAIL = "miklevin@gmail.com"
 
 
 def _yt_sanitize(text):
@@ -417,7 +418,7 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     yt_title = format_youtube_title(title)
     desc_parts = [
         f"📖 Read the full article: {canonical_url}",
-        f"📬 Edge SEO & AI-Readiness Consulting: {base_url}/#consulting (Email: mike@mikelev.in with [RFC9111] in subject)",
+        f"📬 Edge SEO & AI-Readiness Consulting: {base_url}/#consulting (Email: {CONTACT_EMAIL} with [RFC9111] in subject)",
         "",
         f"🎙️ Now reading live on the Honeybot AI Observatory: \"{title}\"",
     ]
@@ -1691,33 +1692,71 @@ def fetch_youtube_top_videos(channel_or_url=None, limit=12, dry_run=False):
         initial = _extract_yt_json(html_text, "ytInitialData =")
         for d in _walk_dicts(initial):
             vr = d.get("videoRenderer")
-            if not isinstance(vr, dict):
+            if isinstance(vr, dict):
+                vid = str(vr.get("videoId") or "")
+                if not vid or vid in seen:
+                    continue
+                t_obj = vr.get("title") or {}
+                title = str(t_obj.get("simpleText") or "")
+                if not title and isinstance(t_obj.get("runs"), list):
+                    title = "".join(str(r.get("text") or "") for r in t_obj["runs"] if isinstance(r, dict))
+                vc_obj = vr.get("viewCountText") or {}
+                vc_raw = str(vc_obj.get("simpleText") or "")
+                if not vc_raw and isinstance(vc_obj.get("runs"), list):
+                    vc_raw = "".join(str(r.get("text") or "") for r in vc_obj["runs"] if isinstance(r, dict))
+                digits = re.sub(r"[^\d]", "", vc_raw)
+                views = int(digits) if digits else 0
+                pub_raw = str((vr.get("publishedTimeText") or {}).get("simpleText") or "LIVE/Recent")
+                len_raw = str((vr.get("lengthText") or {}).get("simpleText") or "LIVE")
+                seen[vid] = {
+                    "video_id": vid,
+                    "kind": "STREAM" if tab == "streams" else "VIDEO",
+                    "views": views,
+                    "views_raw": vc_raw or "0 views",
+                    "age": pub_raw,
+                    "length": len_raw,
+                    "title": title.strip(),
+                    "url": f"https://www.youtube.com/watch?v={vid}",
+                }
                 continue
-            vid = str(vr.get("videoId") or "")
-            if not vid or vid in seen:
-                continue
-            t_obj = vr.get("title") or {}
-            title = str(t_obj.get("simpleText") or "")
-            if not title and isinstance(t_obj.get("runs"), list):
-                title = "".join(str(r.get("text") or "") for r in t_obj["runs"] if isinstance(r, dict))
-            vc_obj = vr.get("viewCountText") or {}
-            vc_raw = str(vc_obj.get("simpleText") or "")
-            if not vc_raw and isinstance(vc_obj.get("runs"), list):
-                vc_raw = "".join(str(r.get("text") or "") for r in vc_obj["runs"] if isinstance(r, dict))
-            digits = re.sub(r"[^\d]", "", vc_raw)
-            views = int(digits) if digits else 0
-            pub_raw = str((vr.get("publishedTimeText") or {}).get("simpleText") or "LIVE/Recent")
-            len_raw = str((vr.get("lengthText") or {}).get("simpleText") or "LIVE")
-            seen[vid] = {
-                "video_id": vid,
-                "kind": "STREAM" if tab == "streams" else "VIDEO",
-                "views": views,
-                "views_raw": vc_raw or "0 views",
-                "age": pub_raw,
-                "length": len_raw,
-                "title": title.strip(),
-                "url": f"https://www.youtube.com/watch?v={vid}",
-            }
+            lvm = d.get("lockupViewModel")
+            if isinstance(lvm, dict):
+                vid = str(lvm.get("contentId") or "")
+                if not vid or not re.match(r"^[A-Za-z0-9_-]{11}$", vid) or vid in seen:
+                    continue
+                meta = ((lvm.get("metadata") or {}).get("lockupMetadataViewModel")) or {}
+                title = str((meta.get("title") or {}).get("content") or "").strip()
+                if not title:
+                    continue
+                rows = (((meta.get("metadata") or {}).get("contentMetadataViewModel")) or {}).get("metadataRows") or []
+                parts_text = []
+                for row in rows:
+                    if isinstance(row, dict):
+                        for part in row.get("metadataParts") or []:
+                            if isinstance(part, dict):
+                                txt = str((part.get("text") or {}).get("content") or "").strip()
+                                if txt:
+                                    parts_text.append(txt)
+                vc_raw = next((p for p in parts_text if "view" in p.lower() or "watching" in p.lower()), "")
+                pub_raw = next((p for p in parts_text if p != vc_raw), "LIVE/Recent")
+                digits = re.sub(r"[^\d]", "", vc_raw)
+                views = int(digits) if digits else 0
+                len_raw = "LIVE"
+                for sub in _walk_dicts(lvm.get("contentImage") or {}):
+                    tb = sub.get("thumbnailBadgeViewModel")
+                    if isinstance(tb, dict) and tb.get("text"):
+                        len_raw = str(tb.get("text")).strip()
+                        break
+                seen[vid] = {
+                    "video_id": vid,
+                    "kind": "STREAM" if tab == "streams" else "VIDEO",
+                    "views": views,
+                    "views_raw": vc_raw or "0 views",
+                    "age": pub_raw,
+                    "length": len_raw,
+                    "title": title,
+                    "url": f"https://www.youtube.com/watch?v={vid}",
+                }
     ranked = sorted(seen.values(), key=lambda x: x["views"], reverse=True)[: max(1, int(limit))]
     print(f"📊 YouTube Title & Topic Radar ({base_ch} — Top {len(ranked)} of {len(seen)} sampled):")
     for idx, item in enumerate(ranked, 1):
