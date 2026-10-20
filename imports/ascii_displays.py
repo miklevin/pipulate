@@ -718,7 +718,7 @@ def _figurate_deployment_context():
     art = """┌─────────────────────────────┬──────────────────────────────┐
 │  AUDITOR'S ASSUMED MODEL    │   ACTUAL DEPLOYMENT MODEL    │
 ├─────────────────────────────┼──────────────────────────────┤
-│  ☁️  Multi-tenant SaaS      │  🖥️  Single-tenant desktop   │
+│  ☁️  Multi-tenant SaaS       │  🖥️  Single-tenant desktop   │
 │  👥  Shared infrastructure  │  👤  One operator, one box   │
 │  🌐  Public network edge    │  🔒  localhost:5001          │
 │  🔑  Secrets manager req.   │  📄  git-ignored .env vault  │
