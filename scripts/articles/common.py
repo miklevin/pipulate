@@ -378,6 +378,8 @@ def get_broadcast_kit(target_key="1", slug_match=None):
         tweet = tweet_match.group(1).strip()
     else:
         tweet = f"{title}\n\n{canonical_url}"
+    if canonical_url in tweet and f"{canonical_url}?" not in tweet:
+        tweet = tweet.replace(canonical_url, f"{canonical_url}?src=x")
     slug = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", post_path.stem)
     hero_match = re.search(
         r"###\s*🎨\s*Hero Banner Image Prompt\s*\n```[a-zA-Z0-9]*\n(.*?)\n```",
@@ -418,8 +420,9 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     tags = " ".join(re.findall(r"#[A-Za-z0-9_]+", tweet))
     yt_title = format_youtube_title(title)
     desc_parts = [
-        f"📖 Read the full article: {canonical_url}",
-        f"💸 Spending $10,000/mo+ on HTML pre-render? RFC 9110/9111/9421 Consulting: {base_url}/#consulting (Email: {CONTACT_EMAIL} with [RFC9111] in subject)",
+        f"📖 Read the full article: {canonical_url}?src=youtube",
+        f"💸 Spending $10,000/mo+ on HTML pre-render? RFC 9110/9111/9421 Consulting: {base_url}/?src=youtube#consulting (Email: {CONTACT_EMAIL} with [RFC9111] in subject)",
+        f"🧪 Test RFC 9110 in your terminal: curl -sI -H \"Accept: text/markdown\" {canonical_url}?src=rfc9110",
         "",
         f"🎙️ Now reading live on the Web Bot AI Observatory: \"{title}\"",
     ]
@@ -452,7 +455,7 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     li_parts = [
         f"🚀 {title}",
         "",
-        f"📖 Full article & code receipts: {canonical_url}",
+        f"📖 Full article & code receipts: {canonical_url}?src=linkedin",
     ]
     if li_imprint:
         li_parts.extend(["", li_imprint])
@@ -460,6 +463,11 @@ def get_broadcast_kit(target_key="1", slug_match=None):
         li_parts.extend(["", li_meta])
     if li_meta and li_imprint and li_meta != li_imprint:
         li_parts.extend(["", f"TL;DR: {li_meta}"])
+    li_parts.extend([
+        "",
+        f"🧪 Test RFC 9110 in your terminal: curl -sI -H \"Accept: text/markdown\" {canonical_url}?src=rfc9110",
+        f"💸 Spending \x2410,000/mo+ on HTML pre-render? {base_url}/?src=linkedin#consulting",
+    ])
     if tags:
         li_parts.extend(["", tags])
     linkedin_post = "\n".join(li_parts).strip()
@@ -688,7 +696,7 @@ key_prefix = {(key[:16] if key else '')!r}
 log_p = pathlib.Path("/var/log/nginx/access.log")
 total = 0
 md_served = 0
-dyes = {{"a+href": 0, "link+rel": 0, "llms.txt": 0}}
+dyes = {{"a+href": 0, "link+rel": 0, "llms.txt": 0, "youtube": 0, "linkedin": 0, "x": 0, "rfc9110": 0}}
 bots = set()
 key_hits = 0
 yt_refs = 0
@@ -714,7 +722,7 @@ if log_p.is_file():
             for tok in ("Applebot", "bingbot", "IndexNow", "archive.org", "wayback", "CorpusBot", "AHC", "OAI-SearchBot", "GPTBot", "Claude", "ExaSearchBot", "ExaUser", "DuckAssistBot", "Googlebot"):
                 if tok.lower() in line.lower():
                     bots.add(tok)
-print(f"TOTAL={{total}}|MD={{md_served}}|KEY_HITS={{key_hits}}|YT_REFS={{yt_refs}}|A_HREF={{dyes['a+href']}}|LINK_REL={{dyes['link+rel']}}|LLMS={{dyes['llms.txt']}}|BOTS={{','.join(sorted(bots)) or 'none'}}")
+print(f"TOTAL={{total}}|MD={{md_served}}|KEY_HITS={{key_hits}}|YT_REFS={{yt_refs}}|A_HREF={{dyes['a+href']}}|LINK_REL={{dyes['link+rel']}}|LLMS={{dyes['llms.txt']}}|S_YT={{dyes['youtube']}}|S_LI={{dyes['linkedin']}}|S_X={{dyes['x']}}|S_RFC={{dyes['rfc9110']}}|BOTS={{','.join(sorted(bots)) or 'none'}}")
 """
     try:
         res = subprocess.run(
@@ -735,6 +743,11 @@ print(f"TOTAL={{total}}|MD={{md_served}}|KEY_HITS={{key_hits}}|YT_REFS={{yt_refs
             print(
                 f"      ↳ Tracer-Dye Doors: ?src=a+href ({kv.get('A_HREF', 0)}) · "
                 f"?src=link+rel ({kv.get('LINK_REL', 0)}) · ?src=llms.txt ({kv.get('LLMS', 0)})"
+            )
+            print(
+                f"      ↳ Social & Canary : ?src=youtube ({kv.get('S_YT', 0)}) · "
+                f"?src=linkedin ({kv.get('S_LI', 0)}) · ?src=x ({kv.get('S_X', 0)}) · "
+                f"?src=rfc9110 ({kv.get('S_RFC', 0)})"
             )
             print(f"      ↳ Crawlers Seen   : {kv.get('BOTS', 'none')}")
         else:
@@ -1551,6 +1564,7 @@ SPOKEN_ALERT_TABLE = {
     "src=linkedin": "Web Bot Observatory alert. A link was followed from LinkedIn.",
     "src=x": "Web Bot Observatory alert. A link was followed from X dot com.",
     "src=twitter": "Web Bot Observatory alert. A link was followed from X dot com.",
+    "src=rfc9110": "Web Bot Observatory alert. An engineer just ran the R F C 9110 terminal verification test.",
     "default": "Web Bot Observatory notification. {message}",
 }
 
@@ -1838,10 +1852,11 @@ def run_youtube_watch(
                 last_viewer_alert = now
                 alert_msg = f"{viewers} watching now — {state['title']}"
                 print(f"👀 [VIEWER] {alert_msg}", flush=True)
+                viewer_word = "viewer" if viewers == 1 else "viewers"
                 spoken_v = (
                     SPOKEN_ALERT_TABLE["viewers_above_2"].format(count=viewers)
                     if viewers > 2
-                    else f"Web Bot Observatory alert. {viewers} viewer watching live."
+                    else f"Web Bot Observatory alert. {viewers} {viewer_word} watching live."
                 )
                 _play_local_ding(ding, spoken_text=spoken_v)
                 if resolved_topic:
