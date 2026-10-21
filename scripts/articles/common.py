@@ -623,6 +623,119 @@ def drop_pebble_pings(target_key="1", slug_match=None, dry_run=False):
     print(f"   • IndexNow (Bing/Yandex/Yep): {results.get('indexnow', '⏳ Dispatched')}")
     print(f"   • Wayback Machine (Archive) : {results.get('wayback', f'⏳ Dispatched -> https://web.archive.org/web/*/{canonical_url}')}")
     print(f"   • GSC URL Inspection        : https://search.google.com/search-console/inspect?resource_id=sc-domain:{parsed_host}")
+    print("   • Verify Reciprocal Receipts: ytpebble verify")
+    return 0
+
+
+def verify_pebble_receipts(target_key="1", slug_match=None):
+    """Verify reciprocal wire receipts on Honeybot and Archive.org for the latest post."""
+    import subprocess
+    import urllib.parse
+    import urllib.request
+    kit = get_broadcast_kit(target_key, slug_match=slug_match)
+    if not kit:
+        print("⚠️ No published post found to verify.")
+        return 1
+    canonical_url = kit["canonical_url"]
+    base_url = kit.get("base_url") or "https://mikelev.in"
+    slug = kit["slug"]
+    key, key_file = ensure_indexnow_key_file(target_key)
+    print(f"🔎 Verifying Reciprocal Pebble-Drop Receipts for: {canonical_url}")
+
+    # 1. Verify IndexNow Key File on Live Origin
+    if key:
+        key_url = f"{base_url}/{key}.txt"
+        masked_url = f"{base_url}/{key[:8]}....txt"
+        try:
+            req = urllib.request.Request(key_url, headers={"User-Agent": "pipulate-verify/1.0"})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                body = resp.read().decode("utf-8", errors="replace").strip()
+                if resp.status == 200 and body == key:
+                    print(f"   1. IndexNow Key File : ✅ LIVE on origin ({masked_url} -> HTTP 200, key match)")
+                else:
+                    print(f"   1. IndexNow Key File : ⚠️ HTTP {resp.status} at {masked_url} (body match={body == key})")
+        except Exception as exc:
+            print(f"   1. IndexNow Key File : ⚠️ Not yet reachable at {masked_url} ({exc}) — run `publish` to deploy")
+    else:
+        print("   1. IndexNow Key File : ⏭️  No key configured")
+
+    # 2. Verify Wayback Machine Snapshot via CDX API (avoids /save/ 429 rate limits)
+    cdx_url = (
+        "https://web.archive.org/cdx/search/cdx?"
+        + urllib.parse.urlencode({"url": canonical_url, "output": "json", "limit": "5"})
+    )
+    try:
+        req = urllib.request.Request(cdx_url, headers={"User-Agent": f"pipulate-verify/1.0 (+{base_url})"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            rows = json.loads(resp.read().decode("utf-8", errors="replace"))
+        if isinstance(rows, list) and len(rows) > 1:
+            last = rows[-1]
+            ts = str(last[1]) if len(last) > 1 else ""
+            status = str(last[4]) if len(last) > 4 else "200"
+            snap_url = f"https://web.archive.org/web/{ts}/{canonical_url}"
+            print(f"   2. Wayback CDX Ledger: ✅ ARCHIVED ({len(rows) - 1} snapshot(s), newest={ts}, status={status})")
+            print(f"      ↳ Snapshot URL    : {snap_url}")
+        else:
+            print(f"   2. Wayback CDX Ledger: ⏳ Pending indexing (queue active -> https://web.archive.org/web/*/{canonical_url})")
+    except Exception as exc:
+        print(f"   2. Wayback CDX Ledger: ℹ️  CDX query deferred ({exc})")
+
+    # 3. Verify Reciprocal Wire Hits in Honeybot /var/log/nginx/access.log
+    remote_py = f"""
+import re, pathlib
+slug = {slug!r}
+key_prefix = {(key[:16] if key else '')!r}
+log_p = pathlib.Path("/var/log/nginx/access.log")
+total = 0
+md_served = 0
+dyes = {{"a+href": 0, "link+rel": 0, "llms.txt": 0}}
+bots = set()
+key_hits = 0
+yt_refs = 0
+if log_p.is_file():
+    with open(log_p, "r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if key_prefix and key_prefix in line:
+                key_hits += 1
+            if slug not in line:
+                continue
+            total += 1
+            if "MarkdownServed:1" in line:
+                md_served += 1
+            for d in dyes:
+                if f"src={{d}}" in line:
+                    dyes[d] += 1
+            if "youtube.com" in line:
+                yt_refs += 1
+            for tok in ("Applebot", "bingbot", "IndexNow", "archive.org", "wayback", "CorpusBot", "AHC", "OAI-SearchBot", "GPTBot", "Claude", "ExaSearchBot", "ExaUser", "DuckAssistBot", "Googlebot"):
+                if tok.lower() in line.lower():
+                    bots.add(tok)
+print(f"TOTAL={{total}}|MD={{md_served}}|KEY_HITS={{key_hits}}|YT_REFS={{yt_refs}}|A_HREF={{dyes['a+href']}}|LINK_REL={{dyes['link+rel']}}|LLMS={{dyes['llms.txt']}}|BOTS={{','.join(sorted(bots)) or 'none'}}")
+"""
+    try:
+        res = subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", HONEYBOT_SSH_HOST, "python3", "-c", remote_py],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        out = (res.stdout or "").strip()
+        if res.returncode == 0 and "TOTAL=" in out:
+            kv = dict(item.split("=", 1) for item in out.split("|") if "=" in item)
+            print(
+                f"   3. Honeybot Wire Log : ✅ {kv.get('TOTAL', 0)} total hits on slug | "
+                f"RFC 9110 MarkdownServed={kv.get('MD', 0)} | YouTube referrals={kv.get('YT_REFS', 0)} | "
+                f"IndexNow key fetches={kv.get('KEY_HITS', 0)}"
+            )
+            print(
+                f"      ↳ Tracer-Dye Doors: ?src=a+href ({kv.get('A_HREF', 0)}) · "
+                f"?src=link+rel ({kv.get('LINK_REL', 0)}) · ?src=llms.txt ({kv.get('LLMS', 0)})"
+            )
+            print(f"      ↳ Crawlers Seen   : {kv.get('BOTS', 'none')}")
+        else:
+            print("   3. Honeybot Wire Log : ⚠️ Could not read remote access.log")
+    except Exception as exc:
+        print(f"   3. Honeybot Wire Log : ⚠️ SSH check failed ({exc})")
     return 0
 
 
@@ -1587,7 +1700,10 @@ def run_youtube_watch(
     """Check or continuously monitor YouTube Live viewers + chat/comments on Prime."""
     import subprocess
     import time
-    if daemon_action in ("daemon", "stop"):
+    if daemon_action in ("daemon", "start", "restart", "stop", "status"):
+        if dry_run:
+            print(f"📡 [DRY RUN] ytwatch daemon_action={daemon_action} | interval={interval}")
+            return 0
         return _manage_ytwatch_daemon(daemon_action, interval=interval, channel=channel)
     if channel:
         _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
@@ -2031,6 +2147,11 @@ if __name__ == "__main__":
         help="Stop the background 'ytwatch' tmux session.",
     )
     parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Verify reciprocal Honeybot access.log and Wayback CDX receipts for --broadcast pebble.",
+    )
+    parser.add_argument(
         "message",
         nargs="*",
         help="Spoken message words for say, push body for ping, or optional interval/channel for watch.",
@@ -2076,14 +2197,18 @@ if __name__ == "__main__":
         watch_interval = cli_args.interval
         daemon_act = "stop" if cli_args.stop else ("daemon" if cli_args.daemon else None)
         if cli_args.message:
-            first_arg = cli_args.message[0].strip()
-            if first_arg in ("daemon", "stop"):
-                daemon_act = first_arg
+            first_arg = cli_args.message[0].strip().lower()
+            if first_arg in ("daemon", "start", "restart"):
+                daemon_act = "daemon"
+            elif first_arg in ("stop", "kill"):
+                daemon_act = "stop"
+            elif first_arg == "status":
+                daemon_act = "status"
             elif first_arg.isdigit():
                 watch_interval = int(first_arg)
                 watch_loop = True
             elif not watch_channel:
-                watch_channel = first_arg
+                watch_channel = cli_args.message[0].strip()
         sys.exit(
             run_youtube_watch(
                 channel=watch_channel,
@@ -2101,6 +2226,9 @@ if __name__ == "__main__":
         top_limit = int(cli_args.message[0]) if (cli_args.message and cli_args.message[0].isdigit()) else 12
         sys.exit(fetch_youtube_top_videos(channel_or_url=cli_args.channel, limit=top_limit, dry_run=cli_args.dry_run))
     if cli_args.broadcast == "pebble":
+        first_pebble_arg = cli_args.message[0].strip().lower() if cli_args.message else ""
+        if cli_args.verify or first_pebble_arg in ("verify", "check", "status"):
+            sys.exit(verify_pebble_receipts(cli_args.target, slug_match=cli_args.slug))
         sys.exit(drop_pebble_pings(cli_args.target, slug_match=cli_args.slug, dry_run=cli_args.dry_run))
     if cli_args.broadcast in ("status", "bell", "stop", "start", "roll", "enable-ws"):
         sys.exit(run_honeybot_obs(cli_args.broadcast))

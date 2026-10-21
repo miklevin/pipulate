@@ -595,13 +595,29 @@ def conjure_window(script_name, duration=30.0, columns=100, lines=30, args=None)
         fig_w, fig_h = measure_figlet(str(args[0]))
         columns = max(60, fig_w + 8)
         lines = max(14, fig_h + 4)
+        cmd = [sys.executable, "-u", str(script_path)] + [str(a) for a in args]
     elif safe_script == "forest.py":
         columns = 106
         lines = 28
-
-    cmd = [sys.executable, "-u", str(script_path)]
-    if args:
-        cmd += [str(a) for a in args]
+        mode_arg = str(args[0]).strip() if args else "overview"
+        ansi_path = None
+        try:
+            from forest import prerender_station_report_ansi
+            ansi_path = prerender_station_report_ansi(mode=mode_arg, width=columns - 2)
+        except Exception:
+            ansi_path = None
+        if ansi_path and os.path.isfile(ansi_path):
+            cmd = [
+                "sh",
+                "-c",
+                f'printf "\\033[?25l"; cat "{ansi_path}"; sleep {max(1.0, float(duration)):.1f}',
+            ]
+        else:
+            cmd = [sys.executable, "-u", str(script_path), mode_arg]
+    else:
+        cmd = [sys.executable, "-u", str(script_path)]
+        if args:
+            cmd += [str(a) for a in args]
 
     shared_conjure_window(
         cmd,

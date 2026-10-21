@@ -16,10 +16,12 @@ KNOWN_BOTS = list(BOT_INTEL["seen"].keys())
 DB_PATH = Path("/home/mike/www/mikelev.in/honeybot.db")
 
 class HoneyDB:
-    def __init__(self, db_path=DB_PATH):
+    def __init__(self, db_path=DB_PATH, read_only=False):
+        import os
         self.db_path = db_path
         self.conn = None
-        self.init_db()
+        if not read_only and os.environ.get("HONEYBOT_DB_READONLY") != "1":
+            self.init_db()
 
     def get_conn(self):
         if not self.conn:

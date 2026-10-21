@@ -163,16 +163,15 @@ def _bar(pct, width=32, fill_color="cyan"):
     return f"[{fill_color}]{'█' * filled}[/{fill_color}][dim]{'░' * empty}[/dim]"
 
 
-def render_station_report(mode="overview", hold_seconds=65.0):
-    """Render a live Python Rich horizontal bar-chart report in an Alacritty overlay window."""
-    import time
-    from rich.console import Console
+def _build_station_report_panel(mode="overview"):
+    """Query honeybot.db in read-only fast mode and return a Rich Panel renderable."""
+    import os
+    os.environ.setdefault("HONEYBOT_DB_READONLY", "1")
     from rich.panel import Panel
     from rich.table import Table
     from rich.text import Text
     from db import db
 
-    console = Console()
     conn = db.get_conn()
     cur = conn.cursor()
 
@@ -288,8 +287,34 @@ def render_station_report(mode="overview", hold_seconds=65.0):
         "\n[bold green]💸 Spending $10,000/mo+ on HTML pre-render?[/bold green] "
         "RFC 9110, RFC 9111 & RFC 9421 save that spend -> [bold cyan]https://mikelev.in/#consulting[/bold cyan]"
     )
+    return Panel(tbl, title=f"[bold bright_cyan]{title_str}[/bold bright_cyan]", subtitle=footer, padding=(1, 2))
+
+
+def prerender_station_report_ansi(mode="overview", width=104, out_path=None):
+    """Pre-render the station report to an ANSI file BEFORE Alacritty opens so frame 1 is populated."""
+    import io
+    from pathlib import Path
+    from rich.console import Console
+    safe_mode = "".join(c for c in str(mode or "overview") if c.isalnum() or c in ("_", "-")) or "overview"
+    target = Path(out_path) if out_path else Path(f"/tmp/honeybot_report_{safe_mode}.ansi")
+    buf = io.StringIO()
+    panel = _build_station_report_panel(mode=safe_mode)
+    console = Console(file=buf, force_terminal=True, color_system="truecolor", width=int(width))
+    console.print(panel)
+    tmp = target.with_suffix(".tmp")
+    tmp.write_text(buf.getvalue(), encoding="utf-8")
+    tmp.replace(target)
+    return str(target)
+
+
+def render_station_report(mode="overview", hold_seconds=65.0):
+    """Render a live Python Rich horizontal bar-chart report in an Alacritty overlay window."""
+    import time
+    from rich.console import Console
+    panel = _build_station_report_panel(mode=mode)
+    console = Console()
     console.clear()
-    console.print(Panel(tbl, title=f"[bold bright_cyan]{title_str}[/bold bright_cyan]", subtitle=footer, padding=(1, 2)))
+    console.print(panel)
     time.sleep(max(1.0, float(hold_seconds)))
 
 
