@@ -719,6 +719,26 @@ def apply_search_replace_patch(payload: str) -> bool:
         
     return success
 
+def _warn_multiline_context_probes(ctx_path: str = 'context.txt') -> None:
+    """Warn when context.txt contains a '! ' probe split across multiple lines.
+    prompt_foo.py parses context.txt line-by-line; a multiline '! ' block leaves
+    an unclosed quote on line 1 (bash exit 2) and orphan lines below it."""
+    if not os.path.isfile(ctx_path):
+        return
+    try:
+        with open(ctx_path, 'r', encoding='utf-8') as f:
+            lines = f.read().splitlines()
+        for idx, raw in enumerate(lines, start=1):
+            s = raw.strip()
+            if not s or s.startswith('#'):
+                continue
+            if s.startswith('! ') and (s.count("'") % 2 != 0 or s.count('"') % 2 != 0 or s.endswith('\\')):
+                print(f"⚠ Warning: {ctx_path}:{idx} has an unclosed quote or backslash in a '! ' probe.")
+                print("   prompt_foo.py executes '! ' lines one line at a time; collapse probes to a single line.")
+    except OSError:
+        pass
+
+
 def main():
     # THE TARGET IS ROOT-RELATIVE (convicted 2026-09-28, deed 1641: `app` typed
     # inside Workshop/corporate/ answered "Target file not found" for a Target
@@ -735,6 +755,7 @@ def main():
     # Read the raw Markdown payload from the Unix pipe
     payload = sys.stdin.read()
     success = apply_search_replace_patch(payload)
+    _warn_multiline_context_probes()
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":

@@ -375,6 +375,23 @@ class HoneyDB:
         row = cur.fetchone()
         return (int(row[0] or 0), int(row[1] or 0)) if row else (0, 0)
 
+    def get_new_user_agents_since(self, min_ua_id=0, limit=10):
+        """Return (ua_id, ua_value, first_seen, total_hits) for bots discovered after min_ua_id."""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        sql = f"""
+            SELECT ua.id, ua.value, ua.first_seen, COALESCE(SUM(l.count), 0) as hits
+            FROM user_agents ua
+            LEFT JOIN daily_logs l ON l.ua_id = ua.id
+            WHERE ua.id > ?
+              {self._BROWSER_FILTER}
+            GROUP BY ua.id
+            ORDER BY ua.id DESC
+            LIMIT ?
+        """
+        cur.execute(sql, (int(min_ua_id), int(limit)))
+        return cur.fetchall()
+
     def increment_counter(self, key, amount=1):
         """Updates a simple persistent counter."""
         sql = """
