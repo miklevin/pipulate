@@ -693,7 +693,11 @@ bots = set()
 key_hits = 0
 yt_refs = 0
 if log_p.is_file():
+    sz = log_p.stat().st_size
     with open(log_p, "r", encoding="utf-8", errors="replace") as f:
+        if sz > 25_000_000:
+            f.seek(sz - 25_000_000)
+            f.readline()
         for line in f:
             if key_prefix and key_prefix in line:
                 key_hits += 1
@@ -714,10 +718,11 @@ print(f"TOTAL={{total}}|MD={{md_served}}|KEY_HITS={{key_hits}}|YT_REFS={{yt_refs
 """
     try:
         res = subprocess.run(
-            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", HONEYBOT_SSH_HOST, "python3", "-c", remote_py],
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", HONEYBOT_SSH_HOST, "python3", "-"],
+            input=remote_py,
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=15,
         )
         out = (res.stdout or "").strip()
         if res.returncode == 0 and "TOTAL=" in out:
@@ -1367,10 +1372,13 @@ def _walk_dicts(node):
                     stack.append(item)
 
 
+_YTWATCH_RESERVED_ACTIONS = {"start", "stop", "status", "restart", "daemon", "kill"}
+
+
 def _normalize_yt_url(channel_or_url):
     """Normalize @handle, video ID, or URL into a fetchable YouTube watch/live URL."""
     raw = (channel_or_url or "").strip()
-    if not raw:
+    if not raw or raw.lower().lstrip("@") in _YTWATCH_RESERVED_ACTIONS:
         return DEFAULT_YT_LIVE_URL
     if raw.startswith(("http://", "https://")):
         return raw
@@ -1723,12 +1731,15 @@ def run_youtube_watch(
     """Check or continuously monitor YouTube Live viewers + chat/comments on Prime."""
     import subprocess
     import time
+    saved_ch = _get_vault_var("PIPULATE_YT_CHANNEL").strip()
+    if saved_ch.lower().lstrip("@") in _YTWATCH_RESERVED_ACTIONS:
+        _save_vault_var("PIPULATE_YT_CHANNEL", "@MikeLevin")
     if daemon_action in ("daemon", "start", "restart", "stop", "status"):
         if dry_run:
             print(f"📡 [DRY RUN] ytwatch daemon_action={daemon_action} | interval={interval}")
             return 0
         return _manage_ytwatch_daemon(daemon_action, interval=interval, channel=channel)
-    if channel:
+    if channel and channel.strip().lower().lstrip("@") not in _YTWATCH_RESERVED_ACTIONS:
         _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
     resolved_channel = _normalize_yt_url(channel or _get_vault_var("PIPULATE_YT_CHANNEL"))
     resolved_topic = (topic or _get_vault_var("PIPULATE_NTFY_TOPIC")).strip()
