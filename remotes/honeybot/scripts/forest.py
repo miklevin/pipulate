@@ -34,7 +34,7 @@ must not itself contain a colon. Bare labels like "THE ITCH" are fine.
 
 WHATS_HAPPENING_BEAT = (
     "What is happening on your screen right now? You are watching the live Web Bot A I Observatory. "
-    "If you are not watching Web A I Bots directly at the wire, you don't know jack about how the modern web works. "
+    "If you are not watching Web Aye Eye Bots directly at the wire, you don't know jack about how the modern web works. "
     "Red stop signs unmask crawlers spoofing Googlebot I P addresses. Blue diamonds mark agents cryptographically "
     "signing requests under R F C 9421 Web Bot Auth. Round oranges highlight every self-asserted crawler. "
     "Hit Like and Subscribe right now so you don't lose this telemetry feed, and copy this live stream link "
