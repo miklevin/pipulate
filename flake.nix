@@ -2498,6 +2498,7 @@ print('AI:\n', r.ai)
           ytsay()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast say    "$@"; }
           ytping()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast ping   "$@"; }
           ytwatch()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch  "$@"; }
+          ytlog()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch attach "$@"; }
 
           # The true 'publish' command (Atomic Cross-Domain Deployment)
           # It requires a commit message as an argument.

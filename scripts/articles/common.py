@@ -815,8 +815,9 @@ def print_broadcast_kit(target_key="1", mode="card", slug_match=None):
         print("                      (Also: ytroll stop | ytroll start | ytbell)")
         print(thin)
         print("PHASE 4: LIVE OBSERVATORY & AUDIENCE INTERACTION (While Streaming)")
-        print(" 12. ytstatus         📡 Check Honeybot OBS PID, port 4455 & timecode")
-        print(" 13. ytwatch          👀 Check live viewers & chat (`ytwatch daemon` / `--stop`)")
+        print(" 12. ytstatus          📡 Check Honeybot OBS PID, port 4455 & timecode")
+        print(" 13. ytwatch           👀 Check live viewers & chat (`ytwatch start|log|status|stop`)")
+        print("     ytlog             📺 Watch live notification stream (`q` or `Ctrl+b d` to exit)")
         print(" 14. ytsay \"text\"     🎙️ Break in LIVE on-air (`-c \"CARD\"` `-p white_rabbit`)")
         print(" 15. ytping \"text\"    📲 Send ntfy.sh push notification to your phone")
         print(" 16. ytcard           📇 Reprint the full Broadcast Kit for the latest post")
@@ -1385,7 +1386,10 @@ def _walk_dicts(node):
                     stack.append(item)
 
 
-_YTWATCH_RESERVED_ACTIONS = {"start", "stop", "status", "restart", "daemon", "kill"}
+_YTWATCH_RESERVED_ACTIONS = {
+    "start", "stop", "status", "restart", "daemon", "kill",
+    "attach", "log", "logs", "tail", "tmux",
+}
 
 
 def _normalize_yt_url(channel_or_url):
@@ -1705,6 +1709,22 @@ def _manage_ytwatch_daemon(action, interval=30, channel=None):
         else:
             print("ℹ️  No background 'ytwatch' tmux session was running.")
         return 0
+    def _style_ytwatch_tmux():
+        for opt, val in (
+            ("status", "on"),
+            ("status-style", "bg=colour235,fg=colour51,bold"),
+            ("status-left-length", "28"),
+            ("status-left", " 🔭 YTWATCH LIVE "),
+            ("status-right-length", "68"),
+            ("status-right", " EXIT (KEEP RUNNING): Press q OR Ctrl+b then d "),
+        ):
+            subprocess.run(
+                ["tmux", "set-option", "-t", "ytwatch", opt, val],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+
     if action in ("daemon", "start", "restart"):
         if channel:
             _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
@@ -1714,20 +1734,43 @@ def _manage_ytwatch_daemon(action, interval=30, channel=None):
         script_path = Path(__file__).resolve()
         cmd_str = (
             f"PYTHONUNBUFFERED=1 {py_bin} {script_path} --broadcast watch "
-            f"--loop --interval {max(5, int(interval))} > {log_path} 2>&1"
+            f"--loop --interval {max(5, int(interval))} 2>&1 | tee {log_path}"
         )
         res = subprocess.run(
             ["tmux", "new-session", "-d", "-s", "ytwatch", "-c", str(repo_root), cmd_str],
             check=False,
         )
         if res.returncode == 0:
+            _style_ytwatch_tmux()
             print(f"🔭 Started background 'ytwatch' daemon in tmux (polling every {max(5, int(interval))}s).")
-            print(f"   • View live log:  tail -f {log_path}")
-            print("   • Check status:   ytwatch status")
-            print("   • Stop daemon:    ytwatch stop")
+            print("   • Watch live stream: ytwatch log   (or `ytlog` — press `q` or `Ctrl+b d` to exit)")
+            print("   • Check status:      ytwatch status")
+            print("   • Stop daemon:       ytwatch stop")
             return 0
         print("❌ Failed to start tmux session 'ytwatch'.")
         return 1
+    if action == "attach":
+        if not is_running:
+            print("🔭 'ytwatch' daemon was not running — starting it now...")
+            rc = _manage_ytwatch_daemon("start", interval=interval, channel=channel)
+            if rc != 0:
+                return rc
+        _style_ytwatch_tmux()
+        if not sys.stdout.isatty():
+            print("📡 [NON-TTY] ytwatch attach ready (tmux session: ytwatch)")
+            return _manage_ytwatch_daemon("status", interval=interval, channel=channel)
+        print("╔══════════════════════════════════════════════════════════════════════╗")
+        print("║ 🔭 ENTERING YTWATCH LIVE TMUX MONITOR (Read-Only Safe Mode)          ║")
+        print("║ • Muscle-Memory Detach : Press Ctrl+b, release both, then press d    ║")
+        print("║ • Quick Escape Hatch   : Press q (detaches & keeps daemon running!)  ║")
+        print("╚══════════════════════════════════════════════════════════════════════╝")
+        subprocess.run(["tmux", "bind-key", "-n", "q", "detach-client"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        try:
+            subprocess.run(["tmux", "attach-session", "-r", "-t", "ytwatch"], check=False)
+        finally:
+            subprocess.run(["tmux", "unbind-key", "-n", "q"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        print("✅ Detached from 'ytwatch' monitor (daemon is STILL RUNNING in background).")
+        return 0
     return 0
 
 
@@ -1748,7 +1791,7 @@ def run_youtube_watch(
     saved_ch = _get_vault_var("PIPULATE_YT_CHANNEL").strip()
     if saved_ch.lower().lstrip("@") in _YTWATCH_RESERVED_ACTIONS:
         _save_vault_var("PIPULATE_YT_CHANNEL", "@MikeLevin")
-    if daemon_action in ("daemon", "start", "restart", "stop", "status"):
+    if daemon_action in ("daemon", "start", "restart", "stop", "status", "attach"):
         if dry_run:
             print(f"📡 [DRY RUN] ytwatch daemon_action={daemon_action} | interval={interval}")
             return 0
@@ -1836,7 +1879,8 @@ def run_youtube_watch(
         "seen_ids": list(seen_ids)[-500:],
         "updated_at": int(time.time()),
     })
-    print(f"🔭 Watching {resolved_channel} every {interval}s (Ctrl+C to stop)...")
+    print(f"🔭 Watching {resolved_channel} every {interval}s...")
+    print("💡 [HOW TO EXIT TMUX WITHOUT STOPPING]: Press 'q' OR press Ctrl+b, release, then press d")
     try:
         while True:
             time.sleep(max(5, int(interval)))
@@ -2253,6 +2297,8 @@ if __name__ == "__main__":
                 daemon_act = "stop"
             elif first_arg == "status":
                 daemon_act = "status"
+            elif first_arg in ("attach", "log", "logs", "tail", "tmux"):
+                daemon_act = "attach"
             elif first_arg.isdigit():
                 watch_interval = int(first_arg)
                 watch_loop = True
