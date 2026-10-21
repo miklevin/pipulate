@@ -1548,12 +1548,14 @@ SPOKEN_ALERT_TABLE = {
 
 
 def _ensure_local_piper_model():
-    """Locate or pull en_US-amy-low.onnx into ~/.local/share/piper_voices on Pipulate Prime."""
+    """Locate or pull en_US-amy-low.onnx across Pipulate Prime's voice caches."""
     import subprocess
     repo_root = Path(__file__).resolve().parents[2]
     voice_dir = Path.home() / ".local/share/piper_voices"
     model_name = "en_US-amy-low.onnx"
     candidates = [
+        CONFIG_DIR / "piper_models" / model_name,
+        repo_root / "assets" / "piper_models" / model_name,
         voice_dir / model_name,
         repo_root / "piper_models" / model_name,
     ]
@@ -1563,16 +1565,18 @@ def _ensure_local_piper_model():
     voice_dir.mkdir(parents=True, exist_ok=True)
     target_model = voice_dir / model_name
     target_json = voice_dir / f"{model_name}.json"
-    try:
-        subprocess.run(
-            ["scp", "-q", f"{HONEYBOT_SSH_HOST}:~/.local/share/piper_voices/{model_name}*", str(voice_dir)],
-            timeout=8,
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        pass
+    for suffix, dest in (("", target_model), (".json", target_json)):
+        if not dest.is_file():
+            try:
+                subprocess.run(
+                    ["scp", "-q", f"{HONEYBOT_SSH_HOST}:.local/share/piper_voices/{model_name}{suffix}", str(dest)],
+                    timeout=8,
+                    check=False,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except Exception:
+                pass
     if target_model.is_file() and target_json.is_file():
         return target_model
     return None
@@ -1595,13 +1599,23 @@ def _speak_local_alert(text, enabled=True):
     clean_text = " ".join(clean_text.split())[:220]
     if not clean_text:
         return
+    worker_code = (
+        "import os, shutil, subprocess, sys, time; "
+        "time.sleep(0.45); "
+        "wav = f'/tmp/pipulate_alert_{os.getpid()}.wav'; "
+        "subprocess.run([sys.argv[2], '--model', sys.argv[3], '--output_file', wav], "
+        "input=sys.argv[1].encode('utf-8'), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); "
+        "cmds = (['pw-play', wav], ['paplay', wav], ['aplay', '-q', wav], ['afplay', wav]); "
+        "play = next((c for c in cmds if shutil.which(c[0])), None); "
+        "subprocess.run(play, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) if (play and os.path.isfile(wav)) else None; "
+        "os.remove(wav) if os.path.isfile(wav) else None"
+    )
     try:
         subprocess.Popen(
             [
-                "sh",
+                sys.executable,
                 "-c",
-                'sleep 0.45 && printf "%s" "$1" | "$2" --model "$3" --output_raw 2>/dev/null | aplay -q -r 22050 -f S16_LE -t raw 2>/dev/null',
-                "piper-alert",
+                worker_code,
                 clean_text,
                 piper_bin,
                 str(model_path),
@@ -1653,6 +1667,15 @@ def _manage_ytwatch_daemon(action, interval=30, channel=None):
         stderr=subprocess.DEVNULL,
     )
     is_running = (has_res.returncode == 0)
+    if action == "status":
+        print(f"📡 ytwatch daemon: {'RUNNING (tmux session: ytwatch)' if is_running else 'STOPPED'}")
+        if log_path.is_file():
+            lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-8:]
+            if lines:
+                print(f"--- Last {len(lines)} line(s) of {log_path} ---")
+                for ln in lines:
+                    print(f"   {ln}")
+        return 0
     if action == "stop":
         if is_running:
             subprocess.run(["tmux", "kill-session", "-t", "ytwatch"], check=False)
@@ -1660,7 +1683,7 @@ def _manage_ytwatch_daemon(action, interval=30, channel=None):
         else:
             print("ℹ️  No background 'ytwatch' tmux session was running.")
         return 0
-    if action == "daemon":
+    if action in ("daemon", "start", "restart"):
         if channel:
             _save_vault_var("PIPULATE_YT_CHANNEL", channel.strip())
         if is_running:
@@ -1678,8 +1701,8 @@ def _manage_ytwatch_daemon(action, interval=30, channel=None):
         if res.returncode == 0:
             print(f"🔭 Started background 'ytwatch' daemon in tmux (polling every {max(5, int(interval))}s).")
             print(f"   • View live log:  tail -f {log_path}")
-            print("   • Attach tmux:    tmux attach -t ytwatch")
-            print("   • Stop daemon:    ytwatch --stop")
+            print("   • Check status:   ytwatch status")
+            print("   • Stop daemon:    ytwatch stop")
             return 0
         print("❌ Failed to start tmux session 'ytwatch'.")
         return 1
