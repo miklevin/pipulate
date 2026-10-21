@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <title>Levinux - A Micro Linux Distribution For Education</title>
+    <meta name="description" content="Levinux is a Tiny Linux Server to help you learn.">
+    <meta property="og:title" content="Levinux - A Micro Linux Distribution For Education">
+    <meta property="og:url" content="https://levinux.com/" />
+    <meta property="og:image" content="https://levinux.com/levinux.png" />
+    <link rel="alternate" type="text/markdown" href="https://levinux.com/index.md" title="Levinux Markdown Deck (RFC 9110)" />
+    <style type="text/css">
+      @import url(//fonts.googleapis.com/css?family=Droid+Serif);
+      @import url(//fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(//fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+
+      body {
+        font-family: 'Droid Serif';
+      }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: 400;
+        margin-bottom: 0;
+      }
+      .remark-slide-content h1 { font-size: 3em; }
+      .remark-slide-content h2 { font-size: 2em; }
+      .remark-slide-content h3 { font-size: 1.6em; }
+      .footnote {
+        position: absolute;
+        bottom: 3em;
+      }
+      li p { line-height: 1.25em; }
+      .red { color: #fa0000; }
+      .large { font-size: 2em; }
+      a, a > code {
+        color: rgb(249, 38, 114);
+        text-decoration: none;
+      }
+      code {
+        -moz-border-radius: 5px;
+        -web-border-radius: 5px;
+        background: #e7e8e2;
+        border-radius: 5px;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+      .remark-code-line-highlighted     { background-color: #373832; }
+      .pull-left {
+        float: left;
+        width: 47%;
+      }
+      .pull-right {
+        float: right;
+        width: 47%;
+      }
+      .pull-right ~ p {
+        clear: both;
+      }
+      #slideshow .slide .content code {
+        font-size: 0.8em;
+      }
+      #slideshow .slide .content pre code {
+        font-size: 0.9em;
+        padding: 15px;
+      }
+      .inverse {
+        background: #272822;
+        color: #777872;
+        text-shadow: 0 0 20px #333;
+      }
+      .inverse h1, .inverse h2 {
+        color: #f3f3f3;
+        line-height: 0.8em;
+      }
+
+      /* Slide-specific styling */
+      #slide-inverse .footnote {
+        bottom: 12px;
+        left: 20px;
+      }
+      #slide-how .slides {
+        font-size: 0.9em;
+        position: absolute;
+        top:  151px;
+        right: 140px;
+      }
+      #slide-how .slides h3 {
+        margin-top: 0.2em;
+      }
+      #slide-how .slides .first, #slide-how .slides .second {
+        padding: 1px 20px;
+        height: 90px;
+        width: 120px;
+        -moz-box-shadow: 0 0 10px #777;
+        -webkit-box-shadow: 0 0 10px #777;
+        box-shadow: 0 0 10px #777;
+      }
+      #slide-how .slides .first {
+        background: #fff;
+        position: absolute;
+        top: 20%;
+        left: 20%;
+        z-index: 1;
+      }
+      #slide-how .slides .second {
+        position: relative;
+        background: #fff;
+        z-index: 0;
+      }
+
+      /* Two-column layout */
+      .left-column {
+        color: #777;
+        width: 20%;
+        height: 92%;
+        float: left;
+      }
+        .left-column h2:last-of-type, .left-column h3:last-child {
+          color: #000;
+        }
+      .right-column {
+        width: 75%;
+        float: right;
+        padding-top: 1em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+name: inverse
+layout: true
+class: center, middle, inverse
+---
+# Welcome to Levinux
+[A Micro Linux Distribution For Education]
+.footnote[Immediately [download](https://github.com/miklevin/levinux/archive/master.zip)]
+---
+## So, you want high-tech Super Powers?
+---
+layout: false
+.left-column[
+  ## Don't know where to start?
+]
+.right-column[
+What do you even call this desire? You see other people bending machines to
+their will starting with no more creativity than you have. They just seem to
+know stuff. Is it programming? Or just being technical? 
+
+- Why rely on others? You want this power for yourself!
+
+- But've only a vague notion of what you're looking for.
+
+- Maybe you think you're too old to learn new tricks.
+
+- Or you think you're too young to learn old tricks!
+
+- Getting conflicting advice from trusted sources?
+
+- And what about mobile apps vs. Web vs. other?
+
+- And the whole Mac vs. PC vs. Linux thing?
+
+- Oh, and then there's the Cloud.
+
+- And choice of Language.
+
+- Aaaaarrg!
+]
+---
+template: inverse
+
+## Could there even possibly be a right answer?
+---
+template: inverse
+
+## Yes! ... Well, sort of.
+Old-skool provides one reasonable approach.
+
+![Levinux](levinux.png "Levinux")
+---
+layout: false
+.left-column[
+  ## Why Old-School Is Cool
+]
+.right-column[
+Anything with a graphical user interface is generally tied to a particular
+hardware platform and particular shapshot in time. All that knowledge is going
+to become antiquated. Games. Mobile. Desktop software. All but the back-end. .red[*]
+
+- Back-end code can be a lot cooler than you think.
+
+- It's also easier than you think, thanks to Python.
+
+- And yeah, we'll be learning JavaScript too.
+
+- And the revision control system called git.
+
+- And the text editor called vim.
+
+- And some *nix commands.
+
+- And text terminals.
+
+.footnote[.red[*] Back-end code runs on servers, not browsers.]
+]
+---
+template: inverse
+
+## I call it the Short Stack or LPvg.
+Linux + Python + vim + git
+---
+layout: false
+.left-column[
+  ## Short Stack?
+]
+.right-column[
+Sounds intimidating? LPvg is actually the LEAST software you could be using to
+do interesting things. Oh yeah, it's all free and open source software
+(F.O.S.S.) and you can get it all in an instant with Levinux. Then ditch
+Levinux. .red[*]
+
+- Anything that can run Python can be a server.
+
+- Add to it a way to get your code around (git)
+
+- Add to it a way to create your code (vim)
+
+- Discover the timelessness of these tools.
+
+- Become impervious to disruption.
+
+- And un-beholden to vendors.
+
+- Code long and prosper,
+
+- On almost anything!
+
+.footnote[.red[*] Think of Levinux as a gateway drug to harder ware.]
+]
+---
+template: inverse
+
+## B o o o o o o o o o r i n g !
+Well, yes. And no.
+---
+layout: false
+.left-column[
+  ## Reality Check
+]
+.right-column[
+What fun or good is back end programming if its only machines talking to
+machines? At some point you need the User Interface (UI) and User Experience
+(UX) in order to interact with real human beings and do useful things.
+
+- Yes, we will learn how to program in JavaScript too.
+
+- And HTML5, CSS and other web-centric technology.
+
+- JavaScript is needed for coding that UI/UX stuff.
+
+- But Python should still be your first language.
+
+- You won't see why until you see why. .red[*]
+
+- So, we'll get your code running here.
+
+- But it will reach outside Levinux
+
+- To interact with the browser
+
+- And be a Full Web Stack.
+
+.footnote[.red[*] Why Python continues to be as popular as it is]
+]
+---
+template: inverse
+
+## Achieving Mastery Is Possible
+The Short Stack is like a violin or carpenter's tools...
+---
+layout: false
+.left-column[
+  ## Timeless Tools?
+]
+.right-column[
+The least amount of software that can run in the most places, and let you do
+the most interesting things across the most fields. All this, without you
+needing to be a career programmer, or much risk of obsolescence.
+
+- *Nix includes Unix, Macs, and Windows with WSL.
+
+- Mind boggling range of hardware your code runs on.
+
+- Python is a language loved by newbs and pros alike.
+
+- vim is a text editor you'll at first hate, then love.
+
+- git lets you backup, move and share code.
+
+- Levinux is like a disposable server.
+
+- Terminals let us log into servers.
+
+- Browsers give UIs to our apps.
+
+- It's little enough to master,
+
+- And will last you forever.
+
+]
+---
+layout: false
+.left-column[
+  ## Alternatives
+]
+.right-column[
+There's countless ways to learn programming and tech. Many are more more
+mainstream, aligned with vendors, their hot hardware platforms, and could get
+you better keywords on your resume and larger salaries sooner.
+
+- The "enterprise" platforms are .NET (C#) and Java.
+
+- These align to Microsoft and Oracle, respectively.
+
+- Which use Visual Studio and Eclipse for IDEs. .red[*]
+
+- There's also Apple with Objective C and Xcode.
+
+- And there's Google's Android that uses Java.
+
+- Those are necessary for native mobile apps.
+
+- Plus, there's Ruby, PHP and a ton of others.
+
+- So, learn whatever else you need to.
+
+- And learn the Short Stack here.
+
+.footnote[.red[*] IDE = Integrated Development Environment ]
+]
+---
+template: inverse
+
+## What precisely is Levinux?
+I'm just connecting a few dots (that were long-overdue)
+---
+layout: false
+.left-column[
+  ## Under The Hood
+]
+.right-column[
+Levinux is a tiny virtual server that runs on the desktop of Macs, Windows and
+Linux PCs (like Ubuntu) with a double-click, so that you can begin to
+fearlessly play around with "server stuff".
+
+- There's no installation or admin rights required. .red[*]
+
+- Built on QEMU and Tiny Core Linux free software.
+
+- It's a legit server -- not some fufu tutorial thing.
+
+- Can be shut-down by just closing a window.
+
+- Runs well from Dropbox and USB drives.
+
+- Portable development environment.
+
+- It's easily reset it to its original state.
+
+- Gateway drug to real hardware.
+
+- Your code survives.
+
+.footnote[.red[*] Just unzip the file & deal with web safety warnings]
+]
+---
+layout: false
+.left-column[
+  ## A Swiss Army Knife of Tech
+]
+.right-column[
+Since Levinux is only Tiny Core running on the PC emulator called QEMU with a
+custom start script, it could be modified as a template for efficiently
+distributing any sort of web appliance, such as ready-to-run Github projects.
+
+- The Recipe.sh start-script can build any type of server.
+
+- The recipe can be edited on the host (the Mac or PC).
+
+- You can pick it apart and modify any way you like.
+
+- It's an efficient way to distribute web appliances.
+
+- Recipes are easily adapted to real hardware.
+
+- Raspberry Pi's can use these recipes. .red[*]
+
+- Learn with Levinux, then move on.
+
+- [Drink Me](https://mikelev.in/ux) to move on (or graduate to [NPvg](https://npvg.org) & [Pipulate](https://pipulate.com)).
+
+.footnote[.red[*] With some modifications for Tiny Core Linux for Pi] 
+]
+---
+template: inverse
+
+## So, How Do I Get Started?
+Just [download](https://github.com/miklevin/levinux/archive/master.zip) the file, unzip, and double-click the script file for your OS.
+
+---
+layout: false
+.left-column[
+  ## How Can I Learn More?
+]
+.right-column[
+Here's some links, but start Googling computer history starting with how a guy
+named Ken Thompson got frustrated with Mutltics and what he did and how ages
+later the work of Richard Stallman and Linus Torvalds came together, and how Al
+Gore invented the Internet, and why today there's so much in common between all
+information technology -- a.k.a. "core". And check out...
+
+- [About a zillion videos on my YouTube channel](https://www.youtube.com/@MikeLevin)
+
+- [Facebook Fanpage](https://www.facebook.com/mikelevinux)
+
+- [Download Levinux (QEMU Classic)](https://github.com/miklevin/Levinux/archive/refs/heads/master.zip)
+
+- [Graduate to NPvg (Nix + Python + vim + git)](https://npvg.org)
+
+- [Drink Me](https://mikelev.in/)
+]
+---
+template: inverse
+
+## And who are you?
+
+---
+template: inverse
+
+![Mike Levin](mike-levin-ambigram.svg "Mike Levin")
+
+---
+template: inverse
+
+# M I K E&nbsp;&nbsp;L E V.I N / U X
+Spread the word!
+    </textarea>
+    <script src="remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>

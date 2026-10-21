@@ -58,6 +58,18 @@ ssh $TARGET "mkdir -p ~/www/qamy.ai"
 rsync -av remotes/honeybot/www/qamy.ai/ $TARGET:~/www/qamy.ai/
 sync_installer
 
+echo "🚀 Syncing levinux.com deck (remark.js HTML + RFC 9110 index.md)..."
+for asset in levinux.png mike-levin-ambigram.svg; do
+  if [ ! -f "remotes/honeybot/www/levinux.com/$asset" ]; then
+    curl -fsSL "https://levinux.com/$asset" -o "remotes/honeybot/www/levinux.com/$asset" 2>/dev/null || true
+  fi
+done
+if [ ! -f "remotes/honeybot/www/levinux.com/remark-latest.min.js" ]; then
+  curl -fsSL "https://remarkjs.com/downloads/remark-latest.min.js" -o "remotes/honeybot/www/levinux.com/remark-latest.min.js" 2>/dev/null || true
+fi
+ssh $TARGET "mkdir -p ~/www/levinux.com"
+rsync -av remotes/honeybot/www/levinux.com/ $TARGET:~/www/levinux.com/
+
 echo "🚀 Syncing NixOS Config..."
 rsync --delete -av remotes/honeybot/nixos/ $TARGET:~/nixos-config-staged/
 

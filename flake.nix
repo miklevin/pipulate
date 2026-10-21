@@ -261,6 +261,20 @@
           set -euo pipefail
           exec ${postsCommand}/bin/posts --fmt body "$@"
         '';
+
+        # THE `markov` COMMAND: Online streaming ML (`river`) + 1st/2nd-order
+        # Markov transition matrix lens over article shards or any numeric/state
+        # series file for `! markov` in context.txt and interactive shells.
+        markovCommand = pkgs.writeShellScriptBin "markov" ''
+          set -euo pipefail
+          root="''${PIPULATE_ROOT:-$PWD}"
+          python_bin="$root/.venv/bin/python"
+          if [ ! -x "$python_bin" ]; then
+            echo "markov: missing $python_bin; enter the Pipulate Nix shell first." >&2
+            exit 1
+          fi
+          exec "$python_bin" "$root/scripts/markov.py" "$@"
+        '';
         rgxCommand = pkgs.writeShellScriptBin "rgx" ''
           set -euo pipefail
 
@@ -830,6 +844,7 @@
           postscCommand                # posts plus holographic shards (the c-twin)
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
           latestCommand                # Full markdown body of newest article(s) for ! latest
+          markovCommand                # Markov transition matrix + river streaming ML lens for ! markov
           rgxCommand                   # Bounded AND-search over article files
           rgxcCommand                  # rgx plus holographic shards and hit context
           aiCommitCommand              # \g's commit generator resolves in-shell on every platform

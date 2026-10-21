@@ -354,6 +354,32 @@
       };
     };
 
+    # THE LEVINUX DECK (2026-10-21): Classic remark.js LPvg slideshow for
+    # browsers, RFC 9110 raw Markdown (index.md) for Accept: text/markdown
+    # agents. Staged HTTP-first while DNS points at GitHub Pages; flip
+    # forceSSL and enableACME to true once the A record points to Honeybot.
+    virtualHosts."levinux.com" = {
+      forceSSL = false;
+      enableACME = false;
+      serverAliases = [ ("www." + "levinux.com") ];
+      root = "/home/mike/www/levinux.com";
+      extraConfig = ''
+        access_log /var/log/nginx/access.log ai_tracker;
+        access_log /var/log/nginx/levinux.access.log ai_tracker;
+      '';
+
+      locations."/" = {
+        extraConfig = ''
+          add_header Vary "Accept" always;
+          if ($serve_markdown) {
+              rewrite ^(.*)/$ $1/index.md break;
+              rewrite ^(.*[^/])$ $1/index.md break;
+          }
+          try_files $uri $uri/index.html $uri/index.md =404;
+        '';
+      };
+    };
+
     virtualHosts."mikelev.in" = {
       forceSSL = true;      # Force all traffic to HTTPS 
       enableACME = true;    # Let's Encrypt magic 
