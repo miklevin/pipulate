@@ -76,10 +76,10 @@ def get_script(breaking=False):
             script.append((
                 "CARD",
                 {
-                    "label": "HONEYBOT\nLIVE",
+                    "label": "WEB BOT AI\nOBSERVATORY",
                     "say": (
-                        "Greetings, entity. You are watching the Honeybot. "
-                        "We are monitoring a home-hosted NixOS web server and reading "
+                        "Greetings, entity. You are watching the Web Bot A I Observatory on Honeybot. "
+                        "We are monitoring a home-hosted Nix O S web server and reading "
                         "the latest published article."
                     ),
                 },

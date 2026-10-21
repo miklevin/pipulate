@@ -419,9 +419,9 @@ def get_broadcast_kit(target_key="1", slug_match=None):
     yt_title = format_youtube_title(title)
     desc_parts = [
         f"📖 Read the full article: {canonical_url}",
-        f"📬 Edge SEO & AI-Readiness Consulting: {base_url}/#consulting (Email: {CONTACT_EMAIL} with [RFC9111] in subject)",
+        f"💸 Spending $10,000/mo+ on HTML pre-render? RFC 9110/9111/9421 Consulting: {base_url}/#consulting (Email: {CONTACT_EMAIL} with [RFC9111] in subject)",
         "",
-        f"🎙️ Now reading live on the Honeybot AI Observatory: \"{title}\"",
+        f"🎙️ Now reading live on the Web Bot AI Observatory: \"{title}\"",
     ]
     if meta_desc:
         desc_parts.extend(["", meta_desc])
@@ -1423,8 +1423,86 @@ def _save_ytwatch_state(state_obj):
         pass
 
 
-def _play_local_ding(enabled=True):
-    """Play assets/sounds/ding.wav locally on Prime if available (non-blocking)."""
+SPOKEN_ALERT_TABLE = {
+    "viewers_above_2": "Web Bot Observatory alert. YouTube concurrent viewers climbed above two, now at {count}.",
+    "live_comment": "Web Bot Observatory alert. A new comment was posted on the live stream by {author}.",
+    "src=youtube": "Web Bot Observatory alert. A link was followed from YouTube.",
+    "src=linkedin": "Web Bot Observatory alert. A link was followed from LinkedIn.",
+    "src=x": "Web Bot Observatory alert. A link was followed from X dot com.",
+    "src=twitter": "Web Bot Observatory alert. A link was followed from X dot com.",
+    "default": "Web Bot Observatory notification. {message}",
+}
+
+
+def _ensure_local_piper_model():
+    """Locate or pull en_US-amy-low.onnx into ~/.local/share/piper_voices on Pipulate Prime."""
+    import subprocess
+    repo_root = Path(__file__).resolve().parents[2]
+    voice_dir = Path.home() / ".local/share/piper_voices"
+    model_name = "en_US-amy-low.onnx"
+    candidates = [
+        voice_dir / model_name,
+        repo_root / "piper_models" / model_name,
+    ]
+    for c in candidates:
+        if c.is_file() and Path(f"{c}.json").is_file():
+            return c
+    voice_dir.mkdir(parents=True, exist_ok=True)
+    target_model = voice_dir / model_name
+    target_json = voice_dir / f"{model_name}.json"
+    try:
+        subprocess.run(
+            ["scp", "-q", f"{HONEYBOT_SSH_HOST}:~/.local/share/piper_voices/{model_name}*", str(voice_dir)],
+            timeout=8,
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        pass
+    if target_model.is_file() and target_json.is_file():
+        return target_model
+    return None
+
+
+def _speak_local_alert(text, enabled=True):
+    """Speak an alert out loud on Pipulate Prime using Piper TTS after ding.wav."""
+    if not enabled or not text:
+        return
+    import shutil
+    import subprocess
+    repo_root = Path(__file__).resolve().parents[2]
+    piper_bin = str(repo_root / ".venv/bin/piper")
+    if not Path(piper_bin).is_file():
+        piper_bin = shutil.which("piper") or ""
+    model_path = _ensure_local_piper_model()
+    if not piper_bin or not model_path:
+        return
+    clean_text = re.sub(r"[^\w\s.,?!:-]", " ", str(text))
+    clean_text = " ".join(clean_text.split())[:220]
+    if not clean_text:
+        return
+    try:
+        subprocess.Popen(
+            [
+                "sh",
+                "-c",
+                'sleep 0.45 && printf "%s" "$1" | "$2" --model "$3" --output_raw 2>/dev/null | aplay -q -r 22050 -f S16_LE -t raw 2>/dev/null',
+                "piper-alert",
+                clean_text,
+                piper_bin,
+                str(model_path),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception:
+        pass
+
+
+def _play_local_ding(enabled=True, spoken_text=None):
+    """Play assets/sounds/ding.wav locally on Prime and optionally speak an alert via Piper TTS."""
     if not enabled:
         return
     import shutil
@@ -1435,19 +1513,20 @@ def _play_local_ding(enabled=True):
         repo_root / "assets/sounds/ding.wav",
     ]
     sound_path = next((p for p in ding_candidates if p.is_file()), None)
-    if not sound_path:
-        return
-    for player_cmd in (["pw-play"], ["paplay"], ["aplay", "-q"], ["afplay"]):
-        if shutil.which(player_cmd[0]):
-            try:
-                subprocess.Popen(
-                    [*player_cmd, str(sound_path)],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                )
-            except Exception:
-                pass
-            break
+    if sound_path:
+        for player_cmd in (["pw-play"], ["paplay"], ["aplay", "-q"], ["afplay"]):
+            if shutil.which(player_cmd[0]):
+                try:
+                    subprocess.Popen(
+                        [*player_cmd, str(sound_path)],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except Exception:
+                    pass
+                break
+    if spoken_text:
+        _speak_local_alert(spoken_text, enabled=enabled)
 
 
 def _manage_ytwatch_daemon(action, interval=30, channel=None):
@@ -1560,7 +1639,10 @@ def run_youtube_watch(
             if is_new and (not state["author"] or msg["author"].lstrip("@").lower() != state["author"].lstrip("@").lower()):
                 print(f"      ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"")
                 if notify_once and resolved_topic:
-                    _play_local_ding(ding)
+                    _play_local_ding(
+                        ding,
+                        spoken_text=SPOKEN_ALERT_TABLE["live_comment"].format(author=msg["author"]),
+                    )
                     send_ntfy_notification(
                         f"{msg['author']}: {msg['text']}",
                         title="💬 Honeybot Live Chat",
@@ -1601,12 +1683,17 @@ def run_youtube_watch(
                 continue
             viewers = state["concurrent_viewers"]
             now = time.time()
-            if (prev_viewers == 0 and viewers >= 1 and (now - last_viewer_alert) > 300) or (viewers > peak_viewers):
+            if (prev_viewers <= 2 and viewers > 2) or (viewers > peak_viewers and viewers > 2) or (prev_viewers == 0 and viewers >= 1 and (now - last_viewer_alert) > 300):
                 peak_viewers = max(peak_viewers, viewers)
                 last_viewer_alert = now
                 alert_msg = f"{viewers} watching now — {state['title']}"
                 print(f"👀 [VIEWER] {alert_msg}", flush=True)
-                _play_local_ding(ding)
+                spoken_v = (
+                    SPOKEN_ALERT_TABLE["viewers_above_2"].format(count=viewers)
+                    if viewers > 2
+                    else f"Web Bot Observatory alert. {viewers} viewer watching live."
+                )
+                _play_local_ding(ding, spoken_text=spoken_v)
                 if resolved_topic:
                     send_ntfy_notification(
                         alert_msg,
@@ -1625,7 +1712,10 @@ def run_youtube_watch(
                 chat_line = f"{msg['author']}: {msg['text']}"
                 print(f"💬 [CHAT] {chat_line}", flush=True)
                 print(f"   ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"", flush=True)
-                _play_local_ding(ding)
+                _play_local_ding(
+                    ding,
+                    spoken_text=SPOKEN_ALERT_TABLE["live_comment"].format(author=msg["author"]),
+                )
                 if resolved_topic:
                     send_ntfy_notification(
                         chat_line,
@@ -1639,7 +1729,10 @@ def run_youtube_watch(
                 diff = cur_comments - prev_comments
                 c_msg = f"+{diff} new comment(s) on {state['title']} (total: {cur_comments})"
                 print(f"📝 [COMMENT] {c_msg}", flush=True)
-                _play_local_ding(ding)
+                _play_local_ding(
+                    ding,
+                    spoken_text=SPOKEN_ALERT_TABLE["live_comment"].format(author="a viewer"),
+                )
                 if resolved_topic:
                     send_ntfy_notification(
                         c_msg,
@@ -1649,6 +1742,39 @@ def run_youtube_watch(
                         topic=resolved_topic,
                     )
             prev_comments = cur_comments
+            try:
+                last_ref_ts = int(persisted.get("last_referral_ts") or int(now))
+                ref_res = subprocess.run(
+                    ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=4", HONEYBOT_SSH_HOST, "tail -n 20 /tmp/honeybot_referrals.jsonl 2>/dev/null"],
+                    capture_output=True,
+                    text=True,
+                    timeout=6,
+                )
+                max_ref_ts = last_ref_ts
+                for rline in (ref_res.stdout or "").splitlines():
+                    try:
+                        robj = json.loads(rline)
+                    except Exception:
+                        continue
+                    rts = int(robj.get("ts") or 0)
+                    rsrc = str(robj.get("src") or "")
+                    rpath = str(robj.get("path") or "/")
+                    if rts > last_ref_ts and rsrc in SPOKEN_ALERT_TABLE:
+                        max_ref_ts = max(max_ref_ts, rts)
+                        ref_msg = f"Inbound click ({rsrc}) -> {rpath}"
+                        print(f"🔗 [REFERRAL] {ref_msg}", flush=True)
+                        _play_local_ding(ding, spoken_text=SPOKEN_ALERT_TABLE[rsrc])
+                        if resolved_topic:
+                            send_ntfy_notification(
+                                ref_msg,
+                                title="🔗 Inbound Social Referral",
+                                priority="high",
+                                tags="link",
+                                topic=resolved_topic,
+                            )
+                persisted["last_referral_ts"] = max_ref_ts
+            except Exception:
+                pass
             _save_ytwatch_state({
                 "video_id": state["video_id"],
                 "concurrent_viewers": viewers,
@@ -1924,6 +2050,16 @@ if __name__ == "__main__":
         )
     if cli_args.broadcast == "ping":
         msg_text = _read_from_clipboard() if cli_args.clip else " ".join(cli_args.message)
+        spoken_key = next((k for k in SPOKEN_ALERT_TABLE if k in (msg_text or "").lower()), "default")
+        spoken_line = (
+            SPOKEN_ALERT_TABLE[spoken_key].format(
+                count=3, author="viewer", message=msg_text or "Ping from Pipulate Prime"
+            )
+        )
+        if not cli_args.dry_run:
+            _play_local_ding(not cli_args.no_ding, spoken_text=spoken_line)
+        else:
+            print(f"🗣️  [DRY RUN] Spoken Piper TTS: {spoken_line!r}")
         sys.exit(
             send_ntfy_notification(
                 msg_text,

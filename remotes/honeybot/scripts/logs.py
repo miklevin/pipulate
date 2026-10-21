@@ -116,7 +116,7 @@ class SonarApp(App):
        but standard Footer widget handles it well. */
     """.replace("__HUD_PANEL_HEIGHT__", str(HUD_PANEL_HEIGHT))
 
-    TITLE = "Honeybot Live Observatory — https://mikelev.in (RFC 9110 Markdown vs. JS Trapdoor)"
+    TITLE = "Web Bot AI Observatory — https://mikelev.in (RFC 9110 · RFC 9421 · JS Trapdoor)"
 
     # --- NEW: Banish the interactive Command Palette ---
     ENABLE_COMMAND_PALETTE = False
@@ -382,6 +382,7 @@ class SonarApp(App):
                             elif 'src=' not in clean_path:
                                 clean_path += "?src=content_neg"
 
+                        clean_sig = self.clean_sig_agent(data.get('sig'))
                         db.log_request(
                             ip=data['ip'],
                             ua=data['ua'],
@@ -390,9 +391,20 @@ class SonarApp(App):
                             referrer=data.get('referrer'),
                             accept=data.get('accept'),
                             served_md=data.get('md'),
-                            host=data.get('host') or 'mikelev.in'
+                            host=data.get('host') or 'mikelev.in',
+                            sig_agent=clean_sig,
                         )
                         db.increment_counter("global_hits")
+                        if '?' in clean_path and not str(data['ip']).startswith(('127.', '10.', '192.168.')):
+                            _, qs_part = clean_path.split('?', 1)
+                            if qs_part in ('src=youtube', 'src=linkedin', 'src=x', 'src=twitter'):
+                                import json as _json
+                                with open('/tmp/honeybot_referrals.jsonl', 'a', encoding='utf-8') as rf:
+                                    rf.write(_json.dumps({
+                                        'ts': int(time.time()),
+                                        'src': qs_part,
+                                        'path': clean_path,
+                                    }) + '\n')
                     except: pass
 
                 # Update Logs UI

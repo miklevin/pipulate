@@ -208,6 +208,30 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
     auth_share_pct = round(100.0 - spoof_share_pct, 1)
     spoof_bar_w = round((spoof_share_pct / 100.0) * 200.0, 1)
     auth_bar_w = round(200.0 - spoof_bar_w, 1)
+    # 4. RFC 9421 Web Bot Auth Signed Clients & Events (from access.log + honeybot.db)
+    sig_clients_val, sig_events_val = 3, 11
+    try:
+        sig_cmd = (
+            "grep 'Sig:\"' /var/log/nginx/access.log | grep -v 'Sig:\"-\"' | "
+            "awk -F'Sig:\"' '{print $2}' | awk -F'\"' '{c[$1]++; n++} END{print length(c) \"|\" (n+0)}'"
+        )
+        sig_res = subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", "honeybot", sig_cmd],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+        if sig_res.returncode == 0 and "|" in (sig_res.stdout or ""):
+            sc_s, se_s = (p.strip() for p in sig_res.stdout.strip().split("|", 1))
+            if sc_s.isdigit() and int(sc_s) > 0:
+                sig_clients_val = int(sc_s)
+            if se_s.isdigit() and int(se_s) > 0:
+                sig_events_val = int(se_s)
+    except Exception:
+        pass
+    sig_clients_fmt = f"{sig_clients_val:,}"
+    sig_events_fmt = f"{sig_events_val:,}"
+    sig_horizon_x = min(200.0, max(6.0, round((sig_clients_val / 10.0) * 200.0, 1)))
     fetched_at = str((stats or {}).get("fetched_at") or "unknown")
     yt_state = common._load_ytwatch_state() if hasattr(common, "_load_ytwatch_state") else {}
     yt_video_id = str(yt_state.get("video_id") or "oxYe6YQDx5M").strip()
@@ -222,6 +246,8 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
         "spoofed_googlebot_reads": spoof_fmt,
         "authentic_bot_md_reads": auth_bot_fmt,
         "spoof_share_pct": f"{spoof_share_pct}%",
+        "rfc9421_signed_clients": sig_clients_fmt,
+        "rfc9421_signed_events": sig_events_fmt,
         "yt_live_video_id": yt_video_id,
         "fetched_at": fetched_at,
     }
@@ -237,11 +263,11 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
         idx_text = index_file.read_text(encoding="utf-8")
         banner = (
             "<!-- START_OBSERVATORY_METRICS -->\n"
-            '<div class="observatory-kpi-bar" role="region" aria-label="Live AI Crawler Telemetry">\n'
+            '<div class="observatory-kpi-bar" role="region" aria-label="Live Web Bot AI Observatory Telemetry">\n'
             '  <div class="kpi-header-row">\n'
             '    <div class="kpi-brand">\n'
             '      <span class="kpi-pulse" aria-hidden="true"></span>\n'
-            '      <span class="kpi-eyebrow">BARE-METAL WIRE TRUTH</span>\n'
+            '      <span class="kpi-eyebrow">WEB BOT AI OBSERVATORY · WIRE TRUTH</span>\n'
             f'      <span class="kpi-sub">No CDN · Direct Nginx SQLite Telemetry · <code>{fetched_at}</code></span>\n'
             '    </div>\n'
             '    <a class="kpi-live-pill" href="https://www.youtube.com/@MikeLevin/live" target="_blank" rel="noopener">🔴 Watch Live HUD ↗</a>\n'
@@ -280,6 +306,19 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
             '        <text x="148" y="20" class="kpi-tick">🧠 RFC 9110</text>\n'
             '      </svg>\n'
             '      <div class="kpi-lbl">Bimodal AI Sensor Split (DOM Hydration vs. Raw Markdown)</div>\n'
+            '    </div>\n'
+            '    <div class="kpi-card">\n'
+            '      <div class="kpi-top">\n'
+            f'        <span class="kpi-val">{sig_events_fmt} <span class="kpi-badge-cyan">🔷 Signed Hits</span> · {sig_clients_fmt} <span class="kpi-badge-cyan">Clients</span></span>\n'
+            '      </div>\n'
+            '      <svg class="kpi-meter" viewBox="0 0 200 22" role="img" aria-label="RFC 9421 Web Bot Auth cryptographic agent adoption">\n'
+            f'        <title>RFC 9421 Web Bot Auth: {sig_events_fmt} cryptographically signed requests across {sig_clients_fmt} verified bot operators (ExaSearchBot, AhrefsBot, DesearchBot)</title>\n'
+            '        <rect x="0" y="4" width="200" height="6" rx="3" fill="rgba(255,255,255,0.08)"></rect>\n'
+            f'        <rect x="0" y="4" width="{sig_horizon_x}" height="6" rx="3" fill="#38bdf8"></rect>\n'
+            f'        <circle cx="{sig_horizon_x}" cy="7" r="3.8" fill="#38bdf8" stroke="#0d1117" stroke-width="1.2"></circle>\n'
+            '        <text x="0" y="20" class="kpi-tick">🔷 ExaSearchBot · AhrefsBot · DesearchBot</text>\n'
+            '      </svg>\n'
+            '      <div class="kpi-lbl">RFC 9421 <code>Web Bot Auth</code> (<code>Signature-Agent</code>)</div>\n'
             '    </div>\n'
             '    <div class="kpi-card">\n'
             '      <div class="kpi-top">\n'

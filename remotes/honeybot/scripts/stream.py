@@ -648,6 +648,23 @@ def dismiss_card(handle):
             pass
 
 
+def resolve_current_article_line():
+    """Return the spoken Beat 3 announcement naming the article currently being read."""
+    title = "our latest technical journal entry"
+    try:
+        from content_loader import get_playlist
+        articles = get_playlist(recent_n=1, include_archive=False)
+        if articles and articles[0].get("title"):
+            title = str(articles[0]["title"])
+    except Exception:
+        pass
+    return (
+        f"The article currently being read on this broadcast is titled: {title}. "
+        "To read the full article text and inspect the raw code receipts at your own pace, "
+        "visit Mike L E V dot eye N slash latest."
+    )
+
+
 def dispatch_cue(command, content, env, profile_dir, pace_say=True):
     """Play one sheet-music cue through the brush set.
 
@@ -662,6 +679,8 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
         queue.join() so a report WINDOW can overlap the spiel in real voice-time.
     """
     if command == "SAY":
+        if isinstance(content, str) and "{CURRENT_ARTICLE}" in content:
+            content = content.replace("{CURRENT_ARTICLE}", resolve_current_article_line())
         if pace_say:
             # Double-buffered synthesis: pre-render the next paragraph while the
             # previous paragraph is still playing on aplay, then synchronize on

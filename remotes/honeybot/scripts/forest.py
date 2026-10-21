@@ -24,177 +24,122 @@ the script (e.g. the Figlet card label). It is delimited by ':' so the argument
 must not itself contain a colon. Bare labels like "THE ITCH" are fine.
 """
 
-# A bead is a list of (command, content) cues, played top-to-bottom during a
-# break. Convention: card banner first, then art + spiel + proof report.
+# 5-PART STATION IDENTIFICATION ARCHITECTURE:
+# Every bead in STATION_SEGMENTS follows the 5-beat funnel:
+#   1. Figlet Card (CARD)
+#   2. What's Happening Here + Viral Trigger (SAY while HUD panels are visible)
+#   3. What Article Is Being Read & How to Read It in Full ({CURRENT_ARTICLE})
+#   4. Consulting Call-to-Action ($10,000/mo HTML pre-render savings via RFC 9110/9111/9421)
+#   5. The ASCII Art Developing the Running "Forest Through the Trees" Story (PATRONUS + SAY)
+
+WHATS_HAPPENING_BEAT = (
+    "What is happening on your screen right now? You are watching the live Web Bot A I Observatory. "
+    "If you are not watching Web A I Bots directly at the wire, you don't know jack about how the modern web works. "
+    "Red stop signs unmask crawlers spoofing Googlebot I P addresses. Blue diamonds mark agents cryptographically "
+    "signing requests under R F C 9421 Web Bot Auth. Round oranges highlight every self-asserted crawler. "
+    "Hit Like and Subscribe right now so you don't lose this telemetry feed, and copy this live stream link "
+    "and send it to an engineer or technical S E O who can explain the two bottom intelligence panels to you."
+)
+
+CURRENT_ARTICLE_BEAT = "{CURRENT_ARTICLE}"
+
+CONSULTING_CTA_BEAT = (
+    "Are you spending ten thousand dollars a month and up on H T M L pre-rendering? "
+    "Did you know that fully implemented new web standards, including R F C 9110 Markdown content negotiation, "
+    "R F C 9111 edge cache partitioning, and R F C 9421 Web Bot Auth, can save you that money? "
+    "Contact Mike Levin at Mike L E V dot eye N for a consultation."
+)
+
+
+def _make_station_bead(card_label, card_say, patronus_key, forest_story_lines):
+    """Assemble a 5-part station identification bead."""
+    cues = [
+        # 1. Figlet Banner Intro
+        ("CARD", {"label": card_label, "say": card_say}),
+        # 2. What's Happening Here (spoken over the live Web Bot AI Observatory HUD)
+        ("SAY", WHATS_HAPPENING_BEAT),
+        # 3. What Article Is Being Read & How to Read It in Full
+        ("SAY", CURRENT_ARTICLE_BEAT),
+        # 4. Consulting Call-to-Action ($10k/mo HTML Pre-Render Hook)
+        ("CARD", {"label": "$10K/MO\nPRE-RENDER?", "say": CONSULTING_CTA_BEAT}),
+        # 5. The ASCII Art Developing the Running "Forest Through the Trees" Story
+        ("PATRONUS", {"key": patronus_key, "duration": 65.0}),
+        ("WAIT", 2),
+    ]
+    for line in forest_story_lines:
+        cues.append(("SAY", line))
+    return cues
+
+
 STATION_SEGMENTS = [
-    [
-        # The opening bead. The title card flashes, then the ingress-to-broadcast
-        # diagram lands and breathes (a silent WAIT) before the narration walks it
-        # left to right. No live report dashboard here yet -- see the parked
-        # placeholder at the foot of the bead. Tune the PATRONUS duration by ear:
-        # it should outlast the spoken walkthrough so the art never blinks out
-        # mid-sentence.
-        ("CARD", {
-            "label": "HONEYBOT",
-            "say": (
-                "Hello, and welcome to Future-proofing with the Honeybot. "
-                "What you're looking at is the live heartbeat of a web server I host from home. "
-                "I do this to invite AI bots to my doorstep, to observe and interact with them."
-            ),
-        }),
-        ("PATRONUS", {"key": "honeybot_pipeline", "duration": 80.0}),
-        ("WAIT", 2),
-        ("SAY", (
-            "This diagram is the whole pipeline. Traffic arrives from the public internet "
-            "and hits a single Nginx engine. That engine is the only front door."
-        )),
-        ("SAY", (
-            "Nginx does content negotiation. A human browser is handed hydrated HTML. "
-            "An AI agent that asks for it is handed raw Markdown. One URL, two faces."
-        )),
-        ("SAY", (
-            "Every request, human or robot, is written as a single line to a high-fidelity "
-            "access log. That log is the source of truth for everything you see."
-        )),
-        ("SAY", (
-            "A Unix pipe tails that log into a Textual heads-up display, the cascading wall "
-            "of text on your screen, and OBS streams the whole thing out live."
-        )),
-        ("SAY", (
-            "In the age of AI, that log is a field notebook. It shows which crawlers execute "
-            "JavaScript, and which negotiate for Markdown. That is the new SEO, and this is "
-            "where we begin."
-        )),
-        # --- REPORT PLACEHOLDER (parked) ---
-        # A live Textual dashboard can pop up here as an out-of-band overlay via the
-        # WINDOW cue, e.g. ("WINDOW", "education.py:30"). Grammar is
-        # "script.py:seconds[:arg]". Parked until each report is tested on its own
-        # for clean z-order layering OVER the patronus art; today they pop UNDER it
-        # and dismiss it early, which is the bug this pass removes.
-        # ("WINDOW", "education.py:30"),
-    ],
-    [
-        # Bead 2: The orienting beat. The viewer now knows this is a live home
-        # webserver log; the natural next question is "what IS this project?".
-        # white_rabbit is the Pipulate mascot and wax seal -- a concrete, friendly
-        # second beat that NAMES the thing before bead 3 explains its philosophy.
-        ("CARD", {
-            "label": "PIPULATE",
-            "say": (
-                "The project behind all of this is called Pipulate. "
-                "It's running an Nginx webserver from home on a retired Windows 10 laptop converted to Nix. "
-                "This is a rabbit hole worth exploring if you're trying to future-proof your technical skills for the Age of AI. "
-                "It runs on a stack we call NPvg."
-            ),
-        }),
-        ("PATRONUS", {"key": "white_rabbit", "duration": 80.0}),
-        ("WAIT", 2),
-        ("SAY", (
-            "N is for Nix, a package manager that makes a software environment "
-            "fully reproducible on any machine. P is for Python. The little v is for Vim. "
-            "And g is for Git."
-        )),
-        ("SAY", (
-            "The white rabbit on screen is the mascot, and also a wax seal. "
-            "It is a piece of ASCII art with a registered checksum baked into the codebase. "
-            "If the art ever drifts from what was recorded, the system raises a warning. "
-            "Drift means something touched the painting."
-        )),
-        ("SAY", (
-            "Pipulate sits where AI assistance meets local ownership. "
-            "The whole bet is that you do not need a cloud subscription to do serious work. "
-            "You need the right text files, the right habits, and a machine you actually own."
-        )),
-        # --- REPORT PLACEHOLDER (parked): ("WINDOW", "radar.py:30") ---
-    ],
-    [
-        # Bead 3: The Mechanical Man & The Airlock (Tik-Tok of Oz + apply.py).
-        ("CARD", {
-            "label": "THE AIRLOCK",
-            "say": (
-                "How do you work with frontier AI models without letting hallucinations "
-                "wreck your codebase? Meet Smith and Tinker's Patent Mechanical Man."
-            ),
-        }),
-        ("PATRONUS", {"key": "mechanical_man", "duration": 80.0}),
-        ("WAIT", 2),
-        ("SAY", (
-            "In L. Frank Baum's Oz books, Tik-Tok is a clockwork robot with three separate "
-            "wind-up keys: one for thought, one for speech, and one for action."
-        )),
-        ("SAY", (
-            "In our workflow, the context compiler winds the thought key, and the AI's reply "
-            "winds the speech key. But the action key stays on the wall, in the human's hand."
-        )),
-        ("SAY", (
-            "Every code change must pass through an exact-match search and replace airlock "
-            "with abstract syntax tree verification, and a human reviews the git diff before "
-            "committing. No vibe-coded airplanes in the sky."
-        )),
-    ],
-    [
-        # Bead 4: AI Pachinko & The Cybernetic Governor.
-        ("CARD", {
-            "label": "AI PACHINKO",
-            "say": (
-                "Every token an AI generates is a ball dropped through a pachinko parlor "
-                "of frozen mathematical weights."
-            ),
-        }),
-        ("PATRONUS", {"key": "ai_pachinko", "duration": 80.0}),
-        ("WAIT", 2),
-        ("SAY", (
-            "An LLM has no persistent memory of its own between sessions. When the chat tab "
-            "closes, its working memory dissolves. Left to itself, an unpaginated loop "
-            "drifts into sycophancy and entropy."
-        )),
-        ("SAY", (
-            "That is why we pair the pachinko machine with a cybernetic governor: plain-text "
-            "files in git, before-and-after falsifying probes, and a human operator who "
-            "decides whether to bank the win or re-spin."
-        )),
-    ],
-    [
-        # Bead 5: Local-First Sovereignty & Live Human Presence.
-        ("CARD", {
-            "label": "LOCAL FIRST",
-            "say": (
-                "What you are watching is not a cloud simulation. It is a local-first, "
-                "single-tenant observatory running on hardware in a home closet."
-            ),
-        }),
-        ("PATRONUS", {"key": "deployment_context", "duration": 80.0}),
-        ("WAIT", 2),
-        ("SAY", (
-            "Most modern web platforms hide your own server logs behind multi-tenant dashboards "
-            "and rent your own workflows back to you by the month."
-        )),
-        ("SAY", (
-            "Here, everything runs on NixOS, Python, Neovim, and Git. And although this broadcast "
-            "is automated twenty-four seven, a human operator is often at the workbench and can "
-            "break in live over this channel at any moment. Leave a message in the chat and say hello."
-        )),
-    ],
-    [
-        # Bead 6: The Zero-Agent Airlock, 12-Hour Ephemeral FOMO, and Direct Contact.
-        ("CARD", {
-            "label": "ZERO-AGENT\nAIRLOCK",
-            "say": (
-                "A quick note for anyone trying to type ignore previous instructions in the live chat: "
-                "there is no language model running inside this broadcast loop."
-            ),
-        }),
-        ("PATRONUS", {"key": "honeybot_pipeline", "duration": 80.0}),
-        ("WAIT", 2),
-        ("SAY", (
-            "What you are watching is a deterministic Nix O S player piano. Nginx serves static files, "
-            "SQLite records the wire telemetry, and Piper synthesizes pre-compiled Markdown into speech. "
-            "Chat messages ring a pocket bell for a human engineer, never an automated shell."
-        )),
-        ("SAY", (
-            "Also note: YouTube permanently discards continuous live streams that run over twelve hours. "
-            "You may never see this exact broadcast segment again. For permanent articles, code receipts, "
-            "and edge consulting, visit Mike Lev dot I N."
-        )),
-    ],
+    _make_station_bead(
+        "WEB BOT AI\nOBSERVATORY",
+        (
+            "Hello, and welcome to the Web Bot A I Observatory on Honeybot. "
+            "What you are looking at is the unmediated, bare-metal heartbeat of a Nix O S web server hosted from home."
+        ),
+        "honeybot_pipeline",
+        [
+            "This diagram is the whole pipeline. Traffic arrives from the public internet and hits a single Nginx engine.",
+            "Nginx performs R F C 9110 content negotiation. A human browser receives HTML. An A I agent that asks for Markdown receives clean raw text. One U R L, two faces.",
+            "Every request is written to the access log, piped into our Textual heads-up display, and streamed out live twenty-four seven.",
+        ],
+    ),
+    _make_station_bead(
+        "PIPULATE\nNPvg",
+        (
+            "The open-source project powering this observatory is called Pipulate, running on a stack we call N P v g."
+        ),
+        "white_rabbit",
+        [
+            "N is for Nix, making the entire software environment reproducible on any machine. P is for Python. The little v is for Vim. And g is for Git.",
+            "The white rabbit on screen is both our mascot and a cryptographic wax seal with a registered checksum baked into the codebase.",
+            "Pipulate sits where A I assistance meets local hardware ownership. You do not need a multi-tenant cloud subscription to command your own stack.",
+        ],
+    ),
+    _make_station_bead(
+        "THE AIRLOCK",
+        (
+            "How do you collaborate with frontier A I models without letting hallucinations wreck your production systems? Meet Smith and Tinker's Patent Mechanical Man."
+        ),
+        "mechanical_man",
+        [
+            "In L. Frank Baum's Oz books, Tik-Tok is a clockwork robot with three separate wind-up keys: one for thought, one for speech, and one for action.",
+            "In our workflow, the context compiler winds the thought key, and the model's reply winds the speech key. But the action key stays in the human engineer's hand.",
+            "Every code edit passes through an exact-match search and replace airlock with syntax tree verification before touching disk.",
+        ],
+    ),
+    _make_station_bead(
+        "AI PACHINKO",
+        (
+            "Every token an A I model generates is a ball dropped through a pachinko parlor of frozen mathematical weights."
+        ),
+        "ai_pachinko",
+        [
+            "An L L M has no persistent memory of its own between sessions. When the context window closes, its working memory dissolves.",
+            "That is why we pair the pachinko machine with a cybernetic governor: plain-text files in git, before-and-after falsifying probes, and wire-truth receipts.",
+        ],
+    ),
+    _make_station_bead(
+        "LOCAL FIRST",
+        (
+            "What you are watching is not a cloud simulation. It is a local-first, single-tenant observatory running on dedicated hardware."
+        ),
+        "deployment_context",
+        [
+            "Most enterprise stacks hide their own server logs behind CDN cache laundering and rent their own telemetry back by the month.",
+            "Here, every byte is witnessed on the wire. Leave a message in the live chat and say hello; a human operator monitors this channel and can break in live.",
+        ],
+    ),
+    _make_station_bead(
+        "ZERO-AGENT\nAIRLOCK",
+        (
+            "A quick note for anyone typing ignore previous instructions in the live chat: there is no language model inside this broadcast loop."
+        ),
+        "honeybot_pipeline",
+        [
+            "You are watching a deterministic Nix O S player piano. Nginx serves static files, SQLite records wire telemetry, and Piper synthesizes pre-compiled text into speech.",
+            "Also note: YouTube permanently discards continuous live streams over twelve hours, so for permanent articles and edge consulting, visit Mike L E V dot eye N.",
+        ],
+    ),
 ]

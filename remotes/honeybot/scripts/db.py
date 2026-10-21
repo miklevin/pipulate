@@ -129,6 +129,26 @@ class HoneyDB:
             )
         """)
 
+        # --- RFC 9421 WEB BOT AUTH TABLES ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS sig_agents (
+                id INTEGER PRIMARY KEY,
+                value TEXT UNIQUE,
+                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS rfc9421_logs (
+                date TEXT,
+                ip_id INTEGER,
+                ua_id INTEGER,
+                sig_id INTEGER,
+                count INTEGER DEFAULT 1,
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (date, ip_id, ua_id, sig_id)
+            )
+        """)
+
         # 3. The Simple KV Store (Persistent Counters)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS kv_store (
@@ -139,6 +159,49 @@ class HoneyDB:
         """)
 
         conn.commit()
+        self.backfill_rfc9421_from_access_log()
+
+    def backfill_rfc9421_from_access_log(self, log_path="/var/log/nginx/access.log"):
+        """One-time backfill of RFC 9421 Signature-Agent hits from access.log when rfc9421_logs is empty."""
+        import re
+        try:
+            conn = self.get_conn()
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM rfc9421_logs")
+            if (cur.fetchone() or [0])[0] > 0:
+                return
+            p = Path(log_path)
+            if not p.is_file():
+                return
+            pat = re.compile(
+                r'^(?P<ip>[\d\.]+) - - \[(?P<dt>\d{2}/[A-Za-z]{3}/\d{4}):.*?\] ".*?" \d+ \d+ ".*?" "(?P<ua>.*?)" .*?Sig:"(?P<sig>[^"]+)"'
+            )
+            date_str = datetime.date.today().isoformat()
+            with open(p, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    if 'Sig:"' not in line or 'Sig:"-"' in line:
+                        continue
+                    m = pat.search(line)
+                    if not m:
+                        continue
+                    sig = m.group("sig").replace(r"\x22", '"').strip().strip('"').strip()
+                    if not sig or sig == "-":
+                        continue
+                    ip_id = self._get_or_create_id("ips", m.group("ip"))
+                    ua_id = self._get_or_create_id("user_agents", m.group("ua"))
+                    sig_id = self._get_or_create_id("sig_agents", sig)
+                    conn.execute(
+                        """
+                        INSERT INTO rfc9421_logs (date, ip_id, ua_id, sig_id, count)
+                        VALUES (?, ?, ?, ?, 1)
+                        ON CONFLICT(date, ip_id, ua_id, sig_id)
+                        DO UPDATE SET count = count + 1, last_updated = CURRENT_TIMESTAMP
+                        """,
+                        (date_str, ip_id, ua_id, sig_id),
+                    )
+            conn.commit()
+        except Exception:
+            pass
 
     def _get_or_create_id(self, table, value):
         """Helper to manage normalized dimensions."""
@@ -161,7 +224,7 @@ class HoneyDB:
         except:
             return None
 
-    def log_request(self, ip, ua, path, status, date_str=None, referrer=None, accept=None, served_md=None, host=None):
+    def log_request(self, ip, ua, path, status, date_str=None, referrer=None, accept=None, served_md=None, host=None, sig_agent=None):
         """
         The Main Ingestor. 
         Takes raw log data, normalizes it, and updates the daily counter.
@@ -210,7 +273,26 @@ class HoneyDB:
             """
             conn.execute(sql_domain, (date_str, dom_id, path_id, ua_id, status))
 
+        # 5. Handle RFC 9421 Web Bot Auth Signature-Agent Sidecar
+        if sig_agent and sig_agent != "-":
+            sig_id = self._get_or_create_id('sig_agents', sig_agent)
+            sql_sig = """
+                INSERT INTO rfc9421_logs (date, ip_id, ua_id, sig_id, count)
+                VALUES (?, ?, ?, ?, 1)
+                ON CONFLICT(date, ip_id, ua_id, sig_id)
+                DO UPDATE SET count = count + 1, last_updated = CURRENT_TIMESTAMP
+            """
+            conn.execute(sql_sig, (date_str, ip_id, ua_id, sig_id))
+
         conn.commit()
+
+    def get_rfc9421_summary(self):
+        """Return (distinct_sig_agents, total_signed_events) from rfc9421_logs."""
+        conn = self.get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(DISTINCT sig_id), COALESCE(SUM(count), 0) FROM rfc9421_logs")
+        row = cur.fetchone()
+        return (int(row[0] or 0), int(row[1] or 0)) if row else (0, 0)
 
     def increment_counter(self, key, amount=1):
         """Updates a simple persistent counter."""
@@ -337,6 +419,8 @@ class HoneyDB:
                     THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
                     WHEN {self._GOOGLEBOT_SPOOF_COND}
                     THEN '[SPOOFED-IP] ' || ua.value
+                    WHEN ua.id IN (SELECT ua_id FROM rfc9421_logs)
+                    THEN '[VERIFIED] ' || ua.value
                     ELSE ua.value
                 END as agent,
                 SUM(logs.count) as total
@@ -414,6 +498,8 @@ class HoneyDB:
                     THEN 'Claude-User (claude-code/*; +https://support.anthropic.com/)'
                     WHEN {self._GOOGLEBOT_SPOOF_COND}
                     THEN '[SPOOFED-IP] ' || ua.value
+                    WHEN ua.id IN (SELECT ua_id FROM rfc9421_logs)
+                    THEN '[VERIFIED] ' || ua.value
                     ELSE ua.value
                 END as agent,
                 SUM(t.count) as total_reads
