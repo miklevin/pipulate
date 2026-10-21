@@ -150,6 +150,7 @@ class SonarApp(App):
         self.ua_counter = Counter()
         self.countdown_str = "--:--"
         self.spoof_flip = False
+        self.verified_tokens = {"ExaSearchBot", "AhrefsBot", "DesearchBot"}
         self.stream_logs()
         
         # Setup Tables (Now with 3 columns!)
@@ -176,10 +177,14 @@ class SonarApp(App):
         """True when a request claims Googlebot from outside Google's crawler IP blocks."""
         return "Googlebot" in (ua_str or "") and not str(ip_str or "").startswith(GOOGLE_IP_PREFIXES)
 
+    def clean_sig_agent(self, sig_str):
+        """Unescape Nginx \\x22 quotes from RFC 9421 Signature-Agent header values."""
+        s = (sig_str or "").replace(r"\x22", '"').strip().strip('"').strip()
+        return "" if s == "-" else s
+
     def is_verified_bot(self, sig_str):
         """True when RFC 9421 / IETF Web Bot Auth Signature-Agent header is present."""
-        s = (sig_str or "").strip()
-        return bool(s and s != "-")
+        return bool(self.clean_sig_agent(sig_str))
 
     def detect_bot_token(self, ua_str):
         """Extract the self-identifying bot/agent token from a User-Agent string, or None for standard browsers."""
@@ -231,6 +236,8 @@ class SonarApp(App):
             raw = raw[len(VERIFIED_PREFIX):].strip()
         clean_ua = raw.replace("Mozilla/5.0 ", "")
         bot_token = self.detect_bot_token(clean_ua)
+        if not is_spoof and not is_verified and bot_token in getattr(self, "verified_tokens", set()):
+            is_verified = True
         if is_spoof:
             label = "Cloaking" if getattr(self, "spoof_flip", False) else (bot_token or "Googlebot")
             identity = f"🛑 {label}"
@@ -345,10 +352,13 @@ class SonarApp(App):
                         raw_path = data['request'].split()[1] if len(data['request'].split()) > 1 else data['request']
                         
                         # SELECTIVE QUERY STRING PRESERVATION
-                        # We keep the ?src= tracking dyes for attribution, but strip everything else (like cache busters)
+                        # We keep the ?src= tracking dyes (including social campaign referrals) for attribution
                         if '?' in raw_path:
                             base_path, qs = raw_path.split('?', 1)
-                            if qs in ['src=a+href', 'src=llms.txt', 'src=link+rel']:
+                            if qs in (
+                                'src=a+href', 'src=llms.txt', 'src=link+rel',
+                                'src=youtube', 'src=linkedin', 'src=x', 'src=twitter',
+                            ):
                                 clean_path = raw_path
                             else:
                                 clean_path = base_path
@@ -411,6 +421,8 @@ class SonarApp(App):
         is_spoof = self.is_spoofed_bot(data.get('ip'), ua)
         is_verified = self.is_verified_bot(data.get('sig'))
         bot_token = self.detect_bot_token(ua)
+        if is_verified and bot_token and hasattr(self, "verified_tokens"):
+            self.verified_tokens.add(bot_token)
         ua_text = self.stylize_agent(ua, is_spoof=is_spoof, is_verified=is_verified, bot_token=bot_token)
         if is_spoof:
             prefix = "🛑 "
@@ -446,6 +458,10 @@ class SonarApp(App):
         text.append("  ") # Just space
         if data.get('md') == '1':
             text.append("[RFC9110:MD] ", style="bold black on green")
+        for ref_tag, ref_label in (("src=youtube", "YOUTUBE"), ("src=linkedin", "LINKEDIN"), ("src=x", "X.COM"), ("src=twitter", "X.COM")):
+            if ref_tag in path:
+                text.append(f"[REF:{ref_label}] ", style="bold white on magenta")
+                break
         text.append(f"{method:4} ", style="bold")
         text.append(f"{path} ", style=path_style)
         text.append(f"[{status}] ", style=status_style)
