@@ -2311,9 +2311,13 @@ _HONEYBOT_HYD_AWK = (
     r"""awk -F'|' '$1 !~ /^127\./ && $1 !~ /^10\./ && $1 !~ /^192\.168\./ """
     r"""{n++; t+=$3} END{print n "|" t}'"""
 )
+_HONEYBOT_CNEG_AWK = (
+    r"""awk -F'|' 'NF>=2 {t+=$2; if ($1 ~ /^\[SPOOFED-IP\]/) s+=$2} END{print (s+0) "|" (t+0)}'"""
+)
 HONEYBOT_METRICS = {
     "markdown": f"cat remotes/honeybot/queries/format_ratio.sql | {_HONEYBOT_PIPE} | {_HONEYBOT_MD_AWK}",
     "hydration": f"cat remotes/honeybot/queries/trapdoor_ips.sql | {_HONEYBOT_PIPE} | {_HONEYBOT_HYD_AWK}",
+    "content_neg": f"cat remotes/honeybot/queries/content_neg_agents.sql | {_HONEYBOT_PIPE} | {_HONEYBOT_CNEG_AWK}",
 }
 def fetch_honeybot_stats() -> dict:
     """Return cached telemetry, refreshing only past the TTL. Never raises."""
