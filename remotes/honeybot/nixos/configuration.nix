@@ -354,6 +354,51 @@
       };
     };
 
+    # THE LEVINIX DOOR (2026-10-21): Target 4 in blogs.nix (WORA Nix Flake
+    # Magic-Cookie packaging). Combines the curl/wget installer door
+    # ($npvg_index stamped to 'levinix') with RFC 9110 Accept: text/markdown
+    # negotiation (index.md) and browser HTML (index.html). Staged HTTP-first
+    # until DNS points at Honeybot.
+    virtualHosts."levinix.org" = {
+      forceSSL = false;
+      enableACME = false;
+      serverAliases = [ ("www." + "levinix.org") ];
+      root = "/home/mike/www/levinix.org";
+      extraConfig = ''
+        access_log /var/log/nginx/access.log ai_tracker;
+        access_log /var/log/nginx/levinix.access.log ai_tracker;
+      '';
+
+      locations."= /" = {
+        extraConfig = ''
+          add_header Vary "Accept, User-Agent" always;
+          types {
+              text/html          html;
+              text/markdown      md;
+              text/x-shellscript sh;
+          }
+          sub_filter_types text/x-shellscript;
+          sub_filter_once off;
+          sub_filter '__INSTALL_DEFAULT_NAME__' 'levinix';
+          if ($serve_markdown) {
+              rewrite ^ /index.md break;
+          }
+          try_files $npvg_index /index.md =404;
+        '';
+      };
+
+      locations."/" = {
+        extraConfig = ''
+          add_header Vary "Accept" always;
+          if ($serve_markdown) {
+              rewrite ^(.*)/$ $1/index.md break;
+              rewrite ^(.*[^/])$ $1/index.md break;
+          }
+          try_files $uri $uri/index.html $uri/index.md =404;
+        '';
+      };
+    };
+
     # THE LEVINUX DECK (2026-10-21): Classic remark.js LPvg slideshow for
     # browsers, RFC 9110 raw Markdown (index.md) for Accept: text/markdown
     # agents. Staged HTTP-first while DNS points at GitHub Pages; flip

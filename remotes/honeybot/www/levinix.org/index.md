@@ -20,19 +20,16 @@ A decade ago, **Levinux (`levinux.com`)** used QEMU + Tiny Core Linux (`LPvg`) t
 
 ## 2. Inspect or Install
 
-```bash
-# 1. Inspect the unexecuted installer in less:
-curl -fsSL [https://levinix.org](https://levinix.org) | less
+    # 1. Inspect the unexecuted installer in less:
+    curl -fsSL https://levinix.org | less
 
-# 2. Run the bootstrap:
-curl -fsSL [https://levinix.org](https://levinix.org) | bash
-
-```
+    # 2. Run the bootstrap:
+    curl -fsSL https://levinix.org | bash
 
 ## 3. Connected Ecosystem
 
-* **Classic Levinux (`LPvg` Slide Deck)**: [https://levinux.com/](https://levinux.com/)
-* **NPvg (Timeless Mastercraft)**: [https://npvg.org/](https://www.google.com/url?sa=E&source=gmail&q=https://npvg.org/)
-* **Project Pipulate**: [https://pipulate.com/](https://pipulate.com/)
-* **QA My AI (Flight Data Recorder)**: [https://qamy.ai/](https://qamy.ai/)
-* **MikeLev.in (24/7 Web Bot AI Observatory)**: [https://mikelev.in/](https://mikelev.in/)
+- **Classic Levinux (`LPvg` Slide Deck)**: [https://levinux.com/](https://levinux.com/)
+- **NPvg (Timeless Mastercraft)**: [https://npvg.org/](https://npvg.org/)
+- **Project Pipulate**: [https://pipulate.com/](https://pipulate.com/)
+- **QA My AI (Flight Data Recorder)**: [https://qamy.ai/](https://qamy.ai/)
+- **MikeLev.in (24/7 Web Bot AI Observatory)**: [https://mikelev.in/](https://mikelev.in/)

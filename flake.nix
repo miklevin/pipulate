@@ -2506,6 +2506,8 @@ print('AI:\n', r.ai)
           ytping()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast ping   "$@"; }
           ytwatch()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch  "$@"; }
           ytlog()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch attach "$@"; }
+          ytapp()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/ytstage.py" app "$@"; }
+          ytvim()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/ytstage.py" vim "$@"; }
 
           # The true 'publish' command (Atomic Cross-Domain Deployment)
           # It requires a commit message as an argument.
@@ -2716,6 +2718,12 @@ print('AI:\n', r.ai)
             # here with the roster until the template above grows one.
             alias article='write_post article'
             alias grim='write_post grim'
+            alias pip='write_post pip'
+            alias levinix='write_post levinix'
+            alias gt='write_post gt'
+            alias rfc9110='write_post rfc9110'
+            alias rfc9111='write_post rfc9111'
+            alias qamy='write_post qamy'
             alias vault='write_post vault'
             alias bot='write_post bot'
             # THE BRIDGE PULL: Reach into the Z640 and suck the bridge file into the Mac clipboard
@@ -2784,6 +2792,12 @@ print('AI:\n', r.ai)
             # touches nothing in this file.
             alias article='write_post article'
             alias grim='write_post grim'
+            alias pip='write_post pip'
+            alias levinix='write_post levinix'
+            alias gt='write_post gt'
+            alias rfc9110='write_post rfc9110'
+            alias rfc9111='write_post rfc9111'
+            alias qamy='write_post qamy'
             alias vault='write_post vault'
             alias bot='write_post bot'
             gobot() {

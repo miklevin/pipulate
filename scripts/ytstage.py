@@ -51,7 +51,7 @@ def run_ytapp(action: str, subpath: str = "/", say_text: str = "", dry_run: bool
     if dry_run:
         print(
             f"🎬 [DRY RUN] ytapp action={action} | local=127.0.0.1:{LOCAL_PORT} -> "
-            f"{HONEYBOT_HOST}:{ stage_url } | say={bool(say_text)}"
+            f"{HONEYBOT_HOST}:{stage_url} | say={bool(say_text)}"
         )
         return 0
 
@@ -261,14 +261,14 @@ print("YTVIM_STAGE_READY")
     print("║ • Type `exit` (or Ctrl+D) at the shell prompt to leave the stage!    ║")
     print("╚══════════════════════════════════════════════════════════════════════╝")
     try:
-        ssh_Consumer = subprocess.Popen(
+        ssh_consumer = subprocess.Popen(
             ["ssh", HONEYBOT_HOST, f"cat >> {VIM_ANSI_FIFO}"],
             stdin=subprocess.PIPE,
         )
-        subprocess.run(["script", "-q", "-f", "/dev/stdout"], stdout=ssh_Consumer.stdin, check=False)
-        if ssh_Consumer.stdin:
-            ssh_Consumer.stdin.close()
-        ssh_Consumer.wait(timeout=5)
+        subprocess.run(["script", "-q", "-f", "/dev/stdout"], stdout=ssh_consumer.stdin, check=False)
+        if ssh_consumer.stdin:
+            ssh_consumer.stdin.close()
+        ssh_consumer.wait(timeout=5)
     except KeyboardInterrupt:
         pass
     finally:

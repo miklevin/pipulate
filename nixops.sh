@@ -18,10 +18,11 @@ TARGET="mike@192.168.10.100"
 # it alone so release.py can move all three doors without staging config or
 # sweeping scripts. Body only; no rebuild.
 sync_installer() {
-  echo "🚀 Syncing installer to the home-hosted doors (npvg.org, qamy.ai)..."
-  ssh $TARGET "mkdir -p ~/www/npvg.org ~/www/qamy.ai" \
+  echo "🚀 Syncing installer to the home-hosted doors (npvg.org, qamy.ai, levinix.org)..."
+  ssh $TARGET "mkdir -p ~/www/npvg.org ~/www/qamy.ai ~/www/levinix.org" \
     && rsync -av assets/installer/install.sh $TARGET:~/www/npvg.org/install.sh \
-    && rsync -av assets/installer/install.sh $TARGET:~/www/qamy.ai/install.sh
+    && rsync -av assets/installer/install.sh $TARGET:~/www/qamy.ai/install.sh \
+    && rsync -av assets/installer/install.sh $TARGET:~/www/levinix.org/install.sh
 }
 if [ "${1:-}" = "--installer" ]; then
   if sync_installer; then
@@ -59,16 +60,19 @@ rsync -av remotes/honeybot/www/qamy.ai/ $TARGET:~/www/qamy.ai/
 sync_installer
 
 echo "🚀 Syncing levinux.com deck (remark.js HTML + RFC 9110 index.md)..."
+LEVINUX_CACHE="$HOME/.cache/pipulate/levinux-assets"
+mkdir -p "$LEVINUX_CACHE"
 for asset in levinux.png mike-levin-ambigram.svg; do
-  if [ ! -f "remotes/honeybot/www/levinux.com/$asset" ]; then
-    curl -fsSL "https://levinux.com/$asset" -o "remotes/honeybot/www/levinux.com/$asset" 2>/dev/null || true
+  if [ ! -f "$LEVINUX_CACHE/$asset" ]; then
+    curl -fsSL "https://levinux.com/$asset" -o "$LEVINUX_CACHE/$asset" 2>/dev/null || true
   fi
 done
-if [ ! -f "remotes/honeybot/www/levinux.com/remark-latest.min.js" ]; then
-  curl -fsSL "https://remarkjs.com/downloads/remark-latest.min.js" -o "remotes/honeybot/www/levinux.com/remark-latest.min.js" 2>/dev/null || true
+if [ ! -f "$LEVINUX_CACHE/remark-latest.min.js" ]; then
+  curl -fsSL "https://remarkjs.com/downloads/remark-latest.min.js" -o "$LEVINUX_CACHE/remark-latest.min.js" 2>/dev/null || true
 fi
-ssh $TARGET "mkdir -p ~/www/levinux.com"
-rsync -av remotes/honeybot/www/levinux.com/ $TARGET:~/www/levinux.com/
+ssh $TARGET "mkdir -p ~/www/levinux.com ~/www/levinix.org"
+rsync -av remotes/honeybot/www/levinux.com/ "$LEVINUX_CACHE/" $TARGET:~/www/levinux.com/
+rsync -av remotes/honeybot/www/levinix.org/ $TARGET:~/www/levinix.org/
 
 echo "🚀 Syncing NixOS Config..."
 rsync --delete -av remotes/honeybot/nixos/ $TARGET:~/nixos-config-staged/
