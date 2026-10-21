@@ -191,9 +191,10 @@ class SonarApp(App):
         s = (ua_str or "").strip()
         if not s or s == "-":
             return None
-        for bot_name in KNOWN_BOTS:
+        for bot_name in sorted(KNOWN_BOTS, key=len, reverse=True):
             if bot_name in s:
-                return bot_name
+                m_ext = re.search(rf"({re.escape(bot_name)}[A-Za-z0-9._-]*)", s)
+                return m_ext.group(1).strip(";/() ") if m_ext else bot_name
         for m in _COMPAT_BOT_RE.finditer(s):
             tok = m.group(1).strip(";/() ")
             if tok and tok.upper() not in ("MSIE", "MOZILLA"):
@@ -255,7 +256,11 @@ class SonarApp(App):
             identity = "👤 Browser/Other"
             identity_style = "dim white"
             sig_style = "dim white"
-        return Text(identity, style=identity_style), Text(clean_ua, style=sig_style)
+        sig_text = Text(clean_ua, style=sig_style)
+        hl_style = SPOOF_STYLE if is_spoof else (VERIFIED_STYLE if is_verified else BOT_STYLE)
+        if bot_token and bot_token in clean_ua:
+            sig_text.highlight_regex(re.escape(bot_token), hl_style)
+        return Text(identity, style=identity_style), sig_text
 
     def refresh_tables(self):
         """Updates both Intelligence tables from DB."""

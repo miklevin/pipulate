@@ -149,6 +149,16 @@ class HoneyDB:
             )
         """)
 
+        # --- REVERSE DNS (FCrDNS) BOT VERIFICATION TABLE ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dns_audit (
+                ip_id INTEGER PRIMARY KEY,
+                ptr_host TEXT,
+                fcrdns_ok INTEGER DEFAULT 0,
+                checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # 3. The Simple KV Store (Persistent Counters)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS kv_store (
@@ -160,6 +170,75 @@ class HoneyDB:
 
         conn.commit()
         self.backfill_rfc9421_from_access_log()
+        self.backfill_dns_audit()
+
+    def verify_fcrdns_ip(self, ip_str, ua_str):
+        """Verify Forward-Confirmed Reverse DNS (FCrDNS) for major crawlers (Googlebot, bingbot, Applebot)."""
+        import socket
+        ua = ua_str or ""
+        expected_suffixes = None
+        if "Googlebot" in ua or "GoogleOther" in ua:
+            expected_suffixes = (".googlebot.com", ".google.com", ".googleusercontent.com")
+        elif "bingbot" in ua.lower():
+            expected_suffixes = (".search.msn.com",)
+        elif "Applebot" in ua:
+            expected_suffixes = (".applebot.apple.com",)
+        if not expected_suffixes:
+            return None
+        try:
+            ip_id = self._get_or_create_id("ips", ip_str)
+            if not ip_id:
+                return None
+            conn = self.get_conn()
+            cur = conn.cursor()
+            cur.execute("SELECT fcrdns_ok FROM dns_audit WHERE ip_id = ?", (ip_id,))
+            row = cur.fetchone()
+            if row is not None:
+                return bool(row[0])
+            old_to = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(1.5)
+            try:
+                ptr_host = socket.gethostbyaddr(ip_str)[0].rstrip(".").lower()
+                fcrdns_ok = 0
+                if ptr_host.endswith(expected_suffixes):
+                    fwd_ips = {ai[4][0] for ai in socket.getaddrinfo(ptr_host, None)}
+                    if ip_str in fwd_ips:
+                        fcrdns_ok = 1
+            except Exception:
+                ptr_host = ""
+                fcrdns_ok = 0
+            finally:
+                socket.setdefaulttimeout(old_to)
+            conn.execute(
+                "INSERT OR REPLACE INTO dns_audit (ip_id, ptr_host, fcrdns_ok) VALUES (?, ?, ?)",
+                (ip_id, ptr_host, fcrdns_ok),
+            )
+            conn.commit()
+            return bool(fcrdns_ok)
+        except Exception:
+            return None
+
+    def backfill_dns_audit(self):
+        """Audit existing Googlebot/bingbot/Applebot IPs in daily_logs and telemetry via FCrDNS."""
+        try:
+            conn = self.get_conn()
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT DISTINCT i.id, i.value, ua.value
+                FROM daily_logs l
+                JOIN ips i ON l.ip_id = i.id
+                JOIN user_agents ua ON l.ua_id = ua.id
+                LEFT JOIN dns_audit d ON d.ip_id = i.id
+                WHERE d.ip_id IS NULL
+                  AND (ua.value LIKE '%Googlebot%' OR ua.value LIKE '%bingbot%' OR ua.value LIKE '%Applebot%')
+                LIMIT 40
+                """
+            )
+            for _, ip_val, ua_val in cur.fetchall():
+                self.verify_fcrdns_ip(ip_val, ua_val)
+        except Exception:
+            pass
 
     def backfill_rfc9421_from_access_log(self, log_path="/var/log/nginx/access.log"):
         """One-time backfill of RFC 9421 Signature-Agent hits from access.log when rfc9421_logs is empty."""
@@ -285,6 +364,8 @@ class HoneyDB:
             conn.execute(sql_sig, (date_str, ip_id, ua_id, sig_id))
 
         conn.commit()
+        if ua and ("Googlebot" in ua or "bingbot" in ua.lower() or "Applebot" in ua):
+            self.verify_fcrdns_ip(ip, ua)
 
     def get_rfc9421_summary(self):
         """Return (distinct_sig_agents, total_signed_events) from rfc9421_logs."""
@@ -390,21 +471,29 @@ class HoneyDB:
         return cur.fetchall()
 
     _GOOGLEBOT_SPOOF_COND = """
-        ua.value LIKE '%Googlebot%'
-        AND i.value NOT LIKE '66.249.%'
-        AND i.value NOT LIKE '64.233.%'
-        AND i.value NOT LIKE '72.14.%'
-        AND i.value NOT LIKE '74.125.%'
-        AND i.value NOT LIKE '108.177.%'
-        AND i.value NOT LIKE '142.250.%'
-        AND i.value NOT LIKE '142.251.%'
-        AND i.value NOT LIKE '172.217.%'
-        AND i.value NOT LIKE '173.194.%'
-        AND i.value NOT LIKE '192.178.%'
-        AND i.value NOT LIKE '207.126.%'
-        AND i.value NOT LIKE '209.85.%'
-        AND i.value NOT LIKE '216.58.%'
-        AND i.value NOT LIKE '216.239.%'
+        (
+            (
+                ua.value LIKE '%Googlebot%'
+                AND i.value NOT LIKE '66.249.%'
+                AND i.value NOT LIKE '64.233.%'
+                AND i.value NOT LIKE '72.14.%'
+                AND i.value NOT LIKE '74.125.%'
+                AND i.value NOT LIKE '108.177.%'
+                AND i.value NOT LIKE '142.250.%'
+                AND i.value NOT LIKE '142.251.%'
+                AND i.value NOT LIKE '172.217.%'
+                AND i.value NOT LIKE '173.194.%'
+                AND i.value NOT LIKE '192.178.%'
+                AND i.value NOT LIKE '207.126.%'
+                AND i.value NOT LIKE '209.85.%'
+                AND i.value NOT LIKE '216.58.%'
+                AND i.value NOT LIKE '216.239.%'
+            )
+            OR (
+                (ua.value LIKE '%Googlebot%' OR ua.value LIKE '%bingbot%' OR ua.value LIKE '%Applebot%')
+                AND i.id IN (SELECT ip_id FROM dns_audit WHERE fcrdns_ok = 0)
+            )
+        )
     """
 
     def get_js_executors(self, limit=20): 

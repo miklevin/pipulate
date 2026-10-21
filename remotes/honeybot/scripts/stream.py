@@ -262,6 +262,10 @@ class Narrator(threading.Thread):
         """Queue a visual cue so it fires in voice-order, not director-order."""
         self.queue.put(("PATRONUS", payload))
 
+    def window(self, payload):
+        """Queue a TUI report window overlay so it fires in voice-order on a daemon thread."""
+        self.queue.put(("WINDOW", payload))
+
     def interrupt(self):
         """Preempt the voice: drop everything queued-but-unspoken and kill the
         audio playing RIGHT NOW, so an urgent line plays immediately instead of
@@ -318,6 +322,15 @@ class Narrator(threading.Thread):
                         conjure_patronus(payload.get("key", "white_rabbit"), duration=payload.get("duration", 3.5))
                     else:
                         conjure_patronus(str(payload))
+                elif isinstance(item, tuple) and item and item[0] == "WINDOW":
+                    win_script, win_dur, win_args = item[1]
+                    threading.Thread(
+                        target=conjure_window,
+                        args=(win_script,),
+                        kwargs={"duration": win_dur, "args": win_args},
+                        daemon=True,
+                    ).start()
+                    time.sleep(0.5)
                 elif isinstance(item, tuple) and item and item[0] == "RAW":
                     self._play_raw_now(item[1])
                 else:
@@ -582,6 +595,9 @@ def conjure_window(script_name, duration=30.0, columns=100, lines=30, args=None)
         fig_w, fig_h = measure_figlet(str(args[0]))
         columns = max(60, fig_w + 8)
         lines = max(14, fig_h + 4)
+    elif safe_script == "forest.py":
+        columns = 106
+        lines = 28
 
     cmd = [sys.executable, "-u", str(script_path)]
     if args:
@@ -747,8 +763,8 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
 
     elif command == "WINDOW":
         # Grammar: "script.py" | "script.py:seconds" | "script.py:seconds:arg".
-        # The optional arg (e.g. a Figlet card label) is forwarded to the script;
-        # it must not contain a colon.
+        # Queued via narrator.window() when pace_say=False so station-break
+        # report windows pop in voice-order and never block subsequent SAY cues.
         parts = str(content).split(":", 2)
         win_script = parts[0].strip()
         win_dur = 30.0
@@ -760,7 +776,10 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
                 win_dur = 30.0
         if len(parts) > 2 and parts[2].strip():
             win_args = [parts[2].strip()]
-        conjure_window(win_script, duration=win_dur, args=win_args)
+        if not pace_say:
+            narrator.window((win_script, win_dur, win_args))
+        else:
+            conjure_window(win_script, duration=win_dur, args=win_args)
 
     elif command == "WAIT":
         try:
@@ -900,10 +919,11 @@ def run_station_break(env, profile_dir):
         for cue_command, cue_content in bead:
             dispatch_cue(cue_command, cue_content, env, profile_dir, pace_say=False)
         wait_for_voice_or_live_interrupt(env, profile_dir)
-        try:
-            subprocess.run(["pkill", "-f", "patronus_visual_shield"], check=False)
-        except Exception:
-            pass
+        for pat in ("patronus_visual_shield", "conjure_window_overlay"):
+            try:
+                subprocess.run(["pkill", "-f", pat], check=False)
+            except Exception:
+                pass
         time.sleep(1.2)
         narrator.say("We now return to our regularly scheduled program.")
         wait_for_voice_or_live_interrupt(env, profile_dir)
