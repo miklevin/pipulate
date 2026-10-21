@@ -2590,7 +2590,7 @@ MATCHBOOK_CHOP = r"""
 # ============================================================================
 # Files tracked by git but not yet mixed into the palette above.
 # Move these into the active chapters to paint them onto the context canvas.
-# Coverage: 191/267 tracked files claimed. The compiler reads this line back on the next compile and prints the delta beside the live count, so an unclaimed file rings once.
+# Coverage: 191/270 tracked files claimed. The compiler reads this line back on the next compile and prints the delta beside the live count, so an unclaimed file rings once.
 
 # AGENTS.md  # [1,039 tokens | 4,223 bytes]
 # AUDIT.md  # [2,993 tokens | 13,897 bytes]
@@ -2634,6 +2634,8 @@ MATCHBOOK_CHOP = r"""
 # remotes/honeybot/queries/hydration_selftest.sql  # [1,204 tokens | 4,235 bytes]
 # remotes/honeybot/queries/intel_markdown_affinity.sql  # [434 tokens | 1,685 bytes]
 # remotes/honeybot/queries/ua_variants.sql  # [645 tokens | 2,535 bytes]
+# remotes/honeybot/www/levinux.com/index.html  # [3,015 tokens | 11,721 bytes]
+# remotes/honeybot/www/levinux.com/index.md  # [786 tokens | 3,097 bytes]
 # scripts/articles/build_hierarchy.py  # [2,460 tokens | 10,361 bytes]
 # scripts/articles/build_navgraph.py  # [2,119 tokens | 9,029 bytes]
 # scripts/articles/execute_massive_prompt.py  # [491 tokens | 2,209 bytes]
@@ -2659,6 +2661,7 @@ MATCHBOOK_CHOP = r"""
 # scripts/gsc/gsc_top_movers.py  # [8,250 tokens | 35,695 bytes]
 # scripts/link_tiers.sh  # [818 tokens | 2,764 bytes]
 # scripts/map_sheet.py  # [3,613 tokens | 15,605 bytes]
+# scripts/markov.py  # [4,414 tokens | 16,017 bytes]
 # scripts/playground/prompt_feeder.py  # [746 tokens | 3,154 bytes]
 # scripts/refactor_cards.py  # [381 tokens | 1,483 bytes]
 # scripts/test_car_b.py  # [283 tokens | 1,090 bytes]
