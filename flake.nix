@@ -252,6 +252,15 @@
           set -euo pipefail
           exec ${postsCommand}/bin/posts --reverse --fmt dated-slugs "$@"
         '';
+
+        # THE `latest` COMMAND: Emits the full markdown body of the newest
+        # article (or N newest with `latest N`, or another blog with
+        # `latest -t grim`) for `! latest` in context.txt and interactive
+        # shells alike.
+        latestCommand = pkgs.writeShellScriptBin "latest" ''
+          set -euo pipefail
+          exec ${postsCommand}/bin/posts --fmt body "$@"
+        '';
         rgxCommand = pkgs.writeShellScriptBin "rgx" ''
           set -euo pipefail
 
@@ -820,6 +829,7 @@
           postsCommand                 # Article corpus formatter usable by child shells
           postscCommand                # posts plus holographic shards (the c-twin)
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
+          latestCommand                # Full markdown body of newest article(s) for ! latest
           rgxCommand                   # Bounded AND-search over article files
           rgxcCommand                  # rgx plus holographic shards and hit context
           aiCommitCommand              # \g's commit generator resolves in-shell on every platform
@@ -2221,28 +2231,10 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
           alias forest='(cd "$PIPULATE_ROOT" && vim remotes/honeybot/scripts/forest.py)'
           alias art='(cd "$PIPULATE_ROOT" && vim imports/ascii_displays.py)'
           alias smart='(cd "$PIPULATE_ROOT" && python release.py --force -m "Testing rabbit documentation injection")'
-          latest() {
-            # -t KEY (first args only) selects which blog's _posts feeds -a,
-            # mirroring the rgx/rgxc/posts idiom. Bare `latest` and `latest N`
-            # are untouched: with no -t, prompt_foo.py uses its own default
-            # target, so latestn()'s `latest "$n"` call keeps working unchanged.
-            local t_args=()
-            if [ "''${1:-}" = "-t" ] && [ "$#" -ge 2 ]; then
-              t_args=(-t "$2")
-              shift 2
-            fi
-            (cd "$PIPULATE_ROOT" && python prompt_foo.py "''${t_args[@]}" -a "[-''${1:-2}:]" --no-tree)
-          }
-          latestu() {
-            # `u`-twin of latest: tree + UML restored (no --no-tree). Same -t
-            # KEY handling and article-count positional as latest.
-            local t_args=()
-            if [ "''${1:-}" = "-t" ] && [ "$#" -ge 2 ]; then
-              t_args=(-t "$2")
-              shift 2
-            fi
-            (cd "$PIPULATE_ROOT" && python prompt_foo.py "''${t_args[@]}" -a "[-''${1:-2}:]")
-          }
+          # `latest` is now a Nix-packaged command in commonPackages (like `book`
+          # and `posts`) so `! latest` works in context.txt child shells. Unset
+          # any lingering function definition from an older session on re-entry.
+          unset -f latest latestu 2>/dev/null || true
           latestn() {
             # Finds largest N articles fitting in byte budget (default ~950KB)
             # Usage: latestn [-N|+N|budget_bytes]  e.g. latestn -1  latestn +2  latestn 786432
@@ -2284,8 +2276,8 @@ print(max(1, n))
 " 2>/dev/null || echo 5)
             n=$((n + adjust))
             [[ $n -lt 1 ]] && n=1
-            echo "📐 Auto-sized to $n most recent articles (budget: $max_bytes bytes)"
-            latest "$n"
+            echo "📐 Auto-sized to $n most recent articles (budget:$max_bytes bytes)"
+            (cd "$PIPULATE_ROOT" && python prompt_foo.py -a "[-$n:]" --no-tree)
           }
           slugs() { (cd "$PIPULATE_ROOT" && python scripts/articles/lsa.py -t 1 --slugs "$@" --fmt paths); }
           # slugs-ordered preserves input order for narrative control

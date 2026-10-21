@@ -422,7 +422,7 @@ def main():
     parser.add_argument('--last', type=int, default=None, metavar='N', help="Keep only the N most recent articles (chronologically), preserving display order")
     parser.add_argument('--match', type=str, default=None, metavar='TERMS', help="Filter articles whose filename contains all whitespace-separated terms (case-insensitive)")
     parser.add_argument('--tokens-under', type=int, default=None, metavar='N', dest='tokens_under', help="Exclude articles with token count >= N (requires reading each file)")
-    parser.add_argument('--fmt', type=str, default='full', choices=['full', 'paths', 'slugs', 'dated-slugs'], help="Output format: 'full' (default, with comments), 'paths' (bare absolute paths), or 'slugs' (concept slug only, no date prefix)")
+    parser.add_argument('--fmt', type=str, default='full', choices=['full', 'paths', 'slugs', 'dated-slugs', 'body'], help="Output format: 'full' (default, with comments), 'paths' (bare absolute paths), 'slugs', 'dated-slugs', or 'body' (full article markdown content, defaults to --last 1)")
     parser.add_argument('--slugs', nargs='+', default=None, metavar='SLUG', help="Select articles by exact slug match (space-separated, no date prefix needed)")
     parser.add_argument('-v', '--vim', action='store_true', help="Open the selected articles in Neovim/Vim (newest-first in buffer 1 by default so :bn walks back in time like rgx -v; pass -r for oldest-first)")
     parser.add_argument('bare_last', nargs='?', type=int, default=None, metavar='N', help="Optional bare number for recent article count (sugar for --last N)")
@@ -435,6 +435,8 @@ def main():
 
     if args.bare_last is not None and args.last is None:
         args.last = args.bare_last
+    if args.fmt == 'body' and args.last is None and args.top is None:
+        args.last = 1
 
     targets = load_targets()
     target_key = args.target
@@ -737,6 +739,28 @@ def main():
                 f" | {run_bytes:,} bytes (Σ{run_tokens/1000:.1f}k)",
                 flush=True,
             )
+        elif args.fmt == 'body':
+            total_items = len(metadata)
+            for idx, item in enumerate(metadata, start=1):
+                filepath = item['path']
+                tokens, bytes_count = _get_metrics(filepath)
+                order = item['sort_order']
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    print(
+                        f"# --- START ARTICLE {idx}/{total_items}: {filepath}"
+                        f" [Order: {order} | Tokens: {tokens:,} | Bytes: {bytes_count:,}] ---",
+                        flush=True,
+                    )
+                    if args.shards:
+                        print_shard_header(filepath)
+                    print(content.rstrip('\n'), flush=True)
+                    print(f"# --- END ARTICLE {idx}/{total_items}: {filepath} ---", flush=True)
+                    if idx < total_items:
+                        print("", flush=True)
+                except Exception as exc:
+                    print(f"# Error reading {filepath}: {exc}", file=sys.stderr)
         else:
             for idx, item in enumerate(metadata, start=1):
                 filepath = item['path']
