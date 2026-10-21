@@ -2590,7 +2590,7 @@ MATCHBOOK_CHOP = r"""
 # ============================================================================
 # Files tracked by git but not yet mixed into the palette above.
 # Move these into the active chapters to paint them onto the context canvas.
-# Coverage: 191/270 tracked files claimed. The compiler reads this line back on the next compile and prints the delta beside the live count, so an unclaimed file rings once.
+# Coverage: 191/273 tracked files claimed. The compiler reads this line back on the next compile and prints the delta beside the live count, so an unclaimed file rings once.
 
 # AGENTS.md  # [1,039 tokens | 4,223 bytes]
 # AUDIT.md  # [2,993 tokens | 13,897 bytes]
@@ -2634,6 +2634,8 @@ MATCHBOOK_CHOP = r"""
 # remotes/honeybot/queries/hydration_selftest.sql  # [1,204 tokens | 4,235 bytes]
 # remotes/honeybot/queries/intel_markdown_affinity.sql  # [434 tokens | 1,685 bytes]
 # remotes/honeybot/queries/ua_variants.sql  # [645 tokens | 2,535 bytes]
+# remotes/honeybot/www/levinix.org/index.html  # [555 tokens | 1,696 bytes]
+# remotes/honeybot/www/levinix.org/index.md  # [603 tokens | 2,268 bytes]
 # remotes/honeybot/www/levinux.com/index.html  # [3,015 tokens | 11,721 bytes]
 # remotes/honeybot/www/levinux.com/index.md  # [786 tokens | 3,097 bytes]
 # scripts/articles/build_hierarchy.py  # [2,460 tokens | 10,361 bytes]
@@ -2668,6 +2670,7 @@ MATCHBOOK_CHOP = r"""
 # scripts/test_packages.sh  # [607 tokens | 2,134 bytes]
 # scripts/two_arm.py  # [4,666 tokens | 17,790 bytes]
 # scripts/variance_probe.py  # [967 tokens | 3,913 bytes]
+# scripts/ytstage.py  # [2,734 tokens | 11,078 bytes]
 # tests/test_apply_airlock.py  # [1,636 tokens | 6,925 bytes]
 # tools/advanced_automation_tools.py  # [27,123 tokens | 137,636 bytes]
 # tools/connector_tools.py  # [1,031 tokens | 4,211 bytes]
