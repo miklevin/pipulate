@@ -1398,6 +1398,22 @@ _YTWATCH_RESERVED_ACTIONS = {
 }
 
 
+def _is_self_chat_author(msg_author, channel_author=""):
+    """True when a YouTube chat author is the broadcaster (@MikeLevin / Mike Levin)."""
+    def _norm(s):
+        return re.sub(r"[\s@_-]+", "", (s or "").strip().lower())
+    norm_msg = _norm(msg_author)
+    if not norm_msg:
+        return False
+    self_norms = {"mikelevin"}
+    if channel_author:
+        self_norms.add(_norm(channel_author))
+    cfg_ch = _get_vault_var("PIPULATE_YT_CHANNEL")
+    if cfg_ch and not cfg_ch.startswith(("http://", "https://")):
+        self_norms.add(_norm(cfg_ch))
+    return norm_msg in self_norms
+
+
 def _normalize_yt_url(channel_or_url):
     """Normalize @handle, video ID, or URL into a fetchable YouTube watch/live URL."""
     raw = (channel_or_url or "").strip()
@@ -1850,7 +1866,7 @@ def run_youtube_watch(
             is_new = had_prior_snapshot and (msg["id"] not in seen_ids)
             badge = "🆕 [NEW] " if is_new else ""
             print(f"   💬 {badge}{msg['author']}: {msg['text']}")
-            if is_new and (not state["author"] or msg["author"].lstrip("@").lower() != state["author"].lstrip("@").lower()):
+            if is_new and not _is_self_chat_author(msg["author"], state.get("author")):
                 print(f"      ↳ Reply on-air: ytsay \"Hey {msg['author']}, thanks for tuning in!\"")
                 if notify_once and resolved_topic:
                     _play_local_ding(
@@ -1923,7 +1939,7 @@ def run_youtube_watch(
                 if msg["id"] in seen_ids:
                     continue
                 seen_ids.add(msg["id"])
-                if state["author"] and msg["author"].lstrip("@").lower() == state["author"].lstrip("@").lower():
+                if _is_self_chat_author(msg["author"], state.get("author")):
                     continue
                 chat_line = f"{msg['author']}: {msg['text']}"
                 print(f"💬 [CHAT] {chat_line}", flush=True)
