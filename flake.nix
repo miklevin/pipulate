@@ -275,6 +275,13 @@
           fi
           exec "$python_bin" "$root/scripts/markov.py" "$@"
         '';
+
+        # THE `swat` COMMAND: 7-at-one-swat JSON dry-run lens over autognome.py
+        # usable from any directory in interactive shells and `! swat` in context.txt.
+        swatCommand = pkgs.writeShellScriptBin "swat" ''
+          set -euo pipefail
+          exec ${pkgs.python312}/bin/python /home/mike/repos/nixos/autognome.py --dry-run "$@"
+        '';
         rgxCommand = pkgs.writeShellScriptBin "rgx" ''
           set -euo pipefail
 
@@ -845,6 +852,7 @@
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
           latestCommand                # Full markdown body of newest article(s) for ! latest
           markovCommand                # Markov transition matrix + river streaming ML lens for ! markov
+          swatCommand                  # 7-at-one-swat JSON dry-run lens for ! swat
           rgxCommand                   # Bounded AND-search over article files
           rgxcCommand                  # rgx plus holographic shards and hit context
           aiCommitCommand              # \g's commit generator resolves in-shell on every platform
