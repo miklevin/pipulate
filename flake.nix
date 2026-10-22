@@ -253,11 +253,16 @@
           exec ${postsCommand}/bin/posts --reverse --fmt dated-slugs "$@"
         '';
 
-        # THE `latest` COMMAND: Emits the full markdown body of the newest
-        # article (or N newest with `latest N`, or another blog with
-        # `latest -t grim`) for `! latest` in context.txt and interactive
-        # shells alike.
+        # THE `latest` AND `postsb` COMMANDS: Emit the full markdown body of
+        # the newest article (or N newest with `latest N`, or a Python slice
+        # like `latest -6:-2` / `postsb -6:-2`) for `! latest` / `! postsb`
+        # in context.txt and interactive shells alike.
         latestCommand = pkgs.writeShellScriptBin "latest" ''
+          set -euo pipefail
+          exec ${postsCommand}/bin/posts --fmt body "$@"
+        '';
+
+        postsbCommand = pkgs.writeShellScriptBin "postsb" ''
           set -euo pipefail
           exec ${postsCommand}/bin/posts --fmt body "$@"
         '';
@@ -871,6 +876,7 @@
         commonPackages = with pkgs; [
           postsCommand                 # Article corpus formatter usable by child shells
           postscCommand                # posts plus holographic shards (the c-twin)
+          postsbCommand                # posts full markdown bodies (the b-twin of posts/postsc)
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
           latestCommand                # Full markdown body of newest article(s) for ! latest
           markovCommand                # Markov transition matrix + river streaming ML lens for ! markov
@@ -2537,6 +2543,7 @@ print('AI:\n', r.ai)
           ytping()   { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast ping   "$@"; }
           ytwatch()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch  "$@"; }
           ytlog()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch attach "$@"; }
+          yttop()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast top   "$@"; }
           ytapp()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/ytstage.py" app "$@"; }
           ytvim()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/ytstage.py" vim "$@"; }
 
