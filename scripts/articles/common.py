@@ -13,6 +13,12 @@ TARGETS_FILE = Path(os.environ.get("PIPULATE_BLOGS_CONFIG", CONFIG_DIR / "blogs.
 KEYS_FILE = CONFIG_DIR / "keys.json"
 LAST_PUBLISHED_FILE = CONFIG_DIR / "last_published.json"
 
+# YouTube Live Summon Thresholds (ytwatch)
+# Minimum simultaneous viewers required to ring the bell + send an ntfy push
+# (2 = viewer + their trusted advisor; lone 1-viewer drive-bys stay silent unless they comment)
+YT_VIEWER_ALERT_MIN = int(os.environ.get("PIPULATE_YT_VIEWER_MIN", "2"))
+YT_VIEWER_ALERT_COOLDOWN = 300  # Seconds before re-alerting when crossing YT_VIEWER_ALERT_MIN
+
 DEFAULT_TARGETS = {
     "1": {
         "name": "Trimnoir (Personal Journal)",
@@ -1562,6 +1568,7 @@ def _save_ytwatch_state(state_obj):
 
 
 SPOKEN_ALERT_TABLE = {
+    "viewers_threshold": "Web Bot Observatory alert. YouTube concurrent viewers reached {count}, meeting the summon threshold of {min_viewers}.",
     "viewers_above_2": "Web Bot Observatory alert. YouTube concurrent viewers climbed above two, now at {count}.",
     "live_comment": "Web Bot Observatory alert. A new comment was posted on the live stream by {author}.",
     "src=youtube": "Web Bot Observatory alert. A link was followed from YouTube.",
@@ -1808,7 +1815,7 @@ def run_youtube_watch(
         parsed = _extract_yt_json(sample, "ytInitialPlayerResponse =")
         ok = (parsed.get("videoDetails") or {}).get("videoId") == "test1234567"
         t_label = "configured" if resolved_topic else "unconfigured"
-        print(f"📡 [DRY RUN] YouTube Watch: channel={resolved_channel} | ntfy={t_label} | parser_ok={ok}")
+        print(f"📡 [DRY RUN] YouTube Watch: channel={resolved_channel} | min_viewers={YT_VIEWER_ALERT_MIN} | ntfy={t_label} | parser_ok={ok}")
         return 0 if ok else 1
     try:
         state = fetch_youtube_live_state(resolved_channel)
@@ -1834,7 +1841,7 @@ def run_youtube_watch(
     d_str = " | daemon=RUNNING" if daemon_running else ""
     print(
         f"📡 YouTube Watch: LIVE={'yes' if state['is_live'] else 'no'} | "
-        f"video={state['video_id'] or 'NONE'} | viewers={state['concurrent_viewers']} | "
+        f"video={state['video_id'] or 'NONE'} | viewers={state['concurrent_viewers']} (alert>={YT_VIEWER_ALERT_MIN}) | "
         f"chat_items={len(state['chat_messages'])}{c_str}{d_str} | title={state['title']!r}"
     )
     if not loop:
@@ -1891,16 +1898,19 @@ def run_youtube_watch(
                 continue
             viewers = state["concurrent_viewers"]
             now = time.time()
-            if (prev_viewers <= 2 and viewers > 2) or (viewers > peak_viewers and viewers > 2) or (prev_viewers == 0 and viewers >= 1 and (now - last_viewer_alert) > 300):
+            crossed_min = (
+                prev_viewers < YT_VIEWER_ALERT_MIN
+                and viewers >= YT_VIEWER_ALERT_MIN
+                and (now - last_viewer_alert) > YT_VIEWER_ALERT_COOLDOWN
+            )
+            new_peak = viewers >= YT_VIEWER_ALERT_MIN and viewers > peak_viewers
+            if crossed_min or new_peak:
                 peak_viewers = max(peak_viewers, viewers)
                 last_viewer_alert = now
-                alert_msg = f"{viewers} watching now — {state['title']}"
+                alert_msg = f"{viewers} watching now (min={YT_VIEWER_ALERT_MIN}) — {state['title']}"
                 print(f"👀 [VIEWER] {alert_msg}", flush=True)
-                viewer_word = "viewer" if viewers == 1 else "viewers"
-                spoken_v = (
-                    SPOKEN_ALERT_TABLE["viewers_above_2"].format(count=viewers)
-                    if viewers > 2
-                    else f"Web Bot Observatory alert. {viewers} {viewer_word} watching live."
+                spoken_v = SPOKEN_ALERT_TABLE["viewers_threshold"].format(
+                    count=viewers, min_viewers=YT_VIEWER_ALERT_MIN
                 )
                 _play_local_ding(ding, spoken_text=spoken_v)
                 if resolved_topic:
@@ -2267,7 +2277,10 @@ if __name__ == "__main__":
         spoken_key = next((k for k in SPOKEN_ALERT_TABLE if k in (msg_text or "").lower()), "default")
         spoken_line = (
             SPOKEN_ALERT_TABLE[spoken_key].format(
-                count=3, author="viewer", message=msg_text or "Ping from Pipulate Prime"
+                count=YT_VIEWER_ALERT_MIN,
+                min_viewers=YT_VIEWER_ALERT_MIN,
+                author="viewer",
+                message=msg_text or "Ping from Pipulate Prime",
             )
         )
         if not cli_args.dry_run:
