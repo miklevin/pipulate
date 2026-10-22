@@ -307,6 +307,7 @@
           fi
 
           last_args=()
+          clip_args=()
           capn=8
           lastn=""
           if [[ "''${1:-}" =~ ^[0-9]+$ ]]; then
@@ -315,17 +316,25 @@
             if [ "$1" -lt "$capn" ]; then
               capn="$1"
             fi
+            clip_args=(--last "$capn")
             shift
+          elif [[ "''${1:-}" =~ ^\[?(-?[0-9]*:-?[0-9]*(:?-?[0-9]*)?|-[0-9]+)\]?$ ]]; then
+            last_args=("--slice=$1")
+            clip_args=("--slice=$1")
+            lastn="$1"
+            shift
+          else
+            clip_args=(--last "$capn")
           fi
-          # THE ZERO-TERM FALLBACK (2026-10-18, deed 51): rgx N (or rgx -v [N])
+          # THE ZERO-TERM FALLBACK (2026-10-18, deed 51): rgx N or rgx SLICE
           # with no search terms delegates straight to posts so muscle memory
-          # never hits a usage wall when asking for the last N articles.
+          # never hits a usage wall when asking for recent or sliced articles.
           if [ "$#" -eq 0 ]; then
             if [ -n "$lastn" ] || [ "$vim_mode" -eq 1 ]; then
               if [ "$vim_mode" -eq 1 ]; then last_args+=(-v); fi
               exec ${postsCommand}/bin/posts -t "$target" "''${last_args[@]}"
             fi
-            echo "Usage: rgx [-t SPEC] [-v] [N] [TERM...]   (SPEC = 4, grim, 1,3, grim,vault, 2-4 or all; N alone lists the N most recent posts; -v opens in vim, newest first)" >&2
+            echo "Usage: rgx [-t SPEC] [-v] [N|SLICE] [TERM...]   (SPEC = 4, grim, 1,3, grim,vault, 2-4 or all; N or SLICE alone lists matching recent posts; -v opens in vim, newest first)" >&2
             exit 1
           fi
 
@@ -364,8 +373,10 @@
           # VIMINIT still loads the repo init.lua.
           if [ "$vim_mode" -eq 1 ]; then
             vim_list="$(printf '%s\n' "$all_paths" | ${pkgs.gnugrep}/bin/grep -Fx -f <(printf '%s\n' "$sorted_matches"))"
-            if [ -n "$lastn" ]; then
+            if [[ "$lastn" =~ ^[0-9]+$ ]]; then
               vim_list="$(printf '%s\n' "$vim_list" | ${pkgs.coreutils}/bin/tail -n "$lastn")"
+            elif [ -n "$lastn" ]; then
+              vim_list="$(printf '%s\n' "$vim_list" | ${postsCommand}/bin/posts -t "$target" --stdin "''${last_args[@]}" --fmt paths)"
             fi
             vim_list="$(printf '%s\n' "$vim_list" | ${pkgs.coreutils}/bin/tac)"
             editor="$(command -v nvim || command -v vim || true)"
@@ -390,7 +401,7 @@
           # detach xclip's own stdout so no capture pipe can be held hostage.
           if [ -t 1 ] && command -v xclip >/dev/null 2>&1; then
             if printf '%s\n' "$sorted_matches" \
-              | ${postsCommand}/bin/posts -t "$target" --stdin --last "$capn" --fmt slugs \
+              | ${postsCommand}/bin/posts -t "$target" --stdin "''${clip_args[@]}" --fmt slugs \
               | { echo "[[[TODO_SLUGS]]]"; cat; echo "[[[END_SLUGS]]]"; } \
               | xclip -selection clipboard >/dev/null 2>&1; then
               echo "📋 TODO_SLUGS block (≤$capn newest) → clipboard (type xp to compile)" >&2
@@ -421,6 +432,7 @@
           fi
 
           last_args=()
+          clip_args=()
           capn=8
           lastn=""
           if [[ "''${1:-}" =~ ^[0-9]+$ ]]; then
@@ -429,16 +441,24 @@
             if [ "$1" -lt "$capn" ]; then
               capn="$1"
             fi
+            clip_args=(--last "$capn")
             shift
+          elif [[ "''${1:-}" =~ ^\[?(-?[0-9]*:-?[0-9]*(:?-?[0-9]*)?|-[0-9]+)\]?$ ]]; then
+            last_args=("--slice=$1")
+            clip_args=("--slice=$1")
+            lastn="$1"
+            shift
+          else
+            clip_args=(--last "$capn")
           fi
-          # THE ZERO-TERM FALLBACK (2026-10-18, deed 51): rgxc N (or rgxc -v [N])
+          # THE ZERO-TERM FALLBACK (2026-10-18, deed 51): rgxc N or rgxc SLICE
           # with no search terms delegates straight to posts --shards (postsc).
           if [ "$#" -eq 0 ]; then
             if [ -n "$lastn" ] || [ "$vim_mode" -eq 1 ]; then
               if [ "$vim_mode" -eq 1 ]; then last_args+=(-v); fi
               exec ${postsCommand}/bin/posts -t "$target" --shards "''${last_args[@]}"
             fi
-            echo "Usage: rgxc [-t SPEC] [-v] [N] [TERM...]   (SPEC = 4, grim, 1,3, grim,vault, 2-4 or all; N alone lists the N most recent posts with shards; -v opens in vim, newest first)" >&2
+            echo "Usage: rgxc [-t SPEC] [-v] [N|SLICE] [TERM...]   (SPEC = 4, grim, 1,3, grim,vault, 2-4 or all; N or SLICE alone lists matching recent posts with shards; -v opens in vim, newest first)" >&2
             exit 1
           fi
 
@@ -470,8 +490,10 @@
           # the vim alias is interactive-only; VIMINIT loads init.lua.
           if [ "$vim_mode" -eq 1 ]; then
             vim_list="$(printf '%s\n' "$all_paths" | ${pkgs.gnugrep}/bin/grep -Fx -f <(printf '%s\n' "$sorted_matches"))"
-            if [ -n "$lastn" ]; then
+            if [[ "$lastn" =~ ^[0-9]+$ ]]; then
               vim_list="$(printf '%s\n' "$vim_list" | ${pkgs.coreutils}/bin/tail -n "$lastn")"
+            elif [ -n "$lastn" ]; then
+              vim_list="$(printf '%s\n' "$vim_list" | ${postsCommand}/bin/posts -t "$target" --stdin "''${last_args[@]}" --fmt paths)"
             fi
             vim_list="$(printf '%s\n' "$vim_list" | ${pkgs.coreutils}/bin/tac)"
             editor="$(command -v nvim || command -v vim || true)"
@@ -491,7 +513,7 @@
           # prompt_foo's ! executor gets clean EOF and no deadlock.
           if [ -t 1 ] && command -v xclip >/dev/null 2>&1; then
             if printf '%s\n' "$sorted_matches" \
-              | ${postsCommand}/bin/posts -t "$target" --stdin --last "$capn" --fmt slugs \
+              | ${postsCommand}/bin/posts -t "$target" --stdin "''${clip_args[@]}" --fmt slugs \
               | { echo "[[[TODO_SLUGS]]]"; cat; echo "[[[END_SLUGS]]]"; } \
               | xclip -selection clipboard >/dev/null 2>&1; then
               echo "📋 TODO_SLUGS block (≤$capn newest) → clipboard (type xp to compile)" >&2
@@ -2492,6 +2514,7 @@ print('AI:\n', r.ai)
           # ---------------------------------------------------------
           # `posts` and `postsc` are Nix-packaged commands in commonPackages so
           # interactive prompts and `!` child shells resolve the exact same words.
+          alias postc='postsc'
           preview() { (cd "$PIPULATE_ROOT/scripts/articles" && python publishizer.py "$@"); }
 
           # GO-GO-GADGET BROADCAST WORDS (2026-10-15): one-word clipboard
