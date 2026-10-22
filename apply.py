@@ -719,6 +719,25 @@ def apply_search_replace_patch(payload: str) -> bool:
         
     return success
 
+def _has_unclosed_shell_quote_or_backslash(s: str) -> bool:
+    """True when a shell command line ends inside an unclosed quote or trailing backslash."""
+    in_sq = False
+    in_dq = False
+    escaped = False
+    for ch in s:
+        if escaped:
+            escaped = False
+            continue
+        if ch == '\\' and not in_sq:
+            escaped = True
+            continue
+        if ch == "'" and not in_dq:
+            in_sq = not in_sq
+        elif ch == '"' and not in_sq:
+            in_dq = not in_dq
+    return in_sq or in_dq or escaped
+
+
 def _warn_multiline_context_probes(ctx_path: str = 'context.txt') -> None:
     """Warn when context.txt contains a '! ' probe split across multiple lines.
     prompt_foo.py parses context.txt line-by-line; a multiline '! ' block leaves
@@ -732,7 +751,7 @@ def _warn_multiline_context_probes(ctx_path: str = 'context.txt') -> None:
             s = raw.strip()
             if not s or s.startswith('#'):
                 continue
-            if s.startswith('! ') and (s.count("'") % 2 != 0 or s.count('"') % 2 != 0 or s.endswith('\\')):
+            if s.startswith('! ') and _has_unclosed_shell_quote_or_backslash(s[2:].strip()):
                 print(f"⚠ Warning: {ctx_path}:{idx} has an unclosed quote or backslash in a '! ' probe.")
                 print("   prompt_foo.py executes '! ' lines one line at a time; collapse probes to a single line.")
     except OSError:
