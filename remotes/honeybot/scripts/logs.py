@@ -468,6 +468,10 @@ class SonarApp(App):
             text.append("[QAMY] ", style="bold magenta")
         elif 'npvg' in host:
             text.append("[NPVG] ", style="bold yellow")
+        elif 'levinix' in host:
+            text.append("[LNIX] ", style="bold green")
+        elif 'levinux' in host:
+            text.append("[LNUX] ", style="bold bright_yellow")
         else:
             text.append("[LEVN] ", style="bold cyan")
 
