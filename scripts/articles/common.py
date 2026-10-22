@@ -17,7 +17,7 @@ LAST_PUBLISHED_FILE = CONFIG_DIR / "last_published.json"
 # Minimum simultaneous viewers required to ring the bell + send an ntfy push
 # (2 = viewer + their trusted advisor; lone 1-viewer drive-bys stay silent unless they comment)
 YT_VIEWER_ALERT_MIN = int(os.environ.get("PIPULATE_YT_VIEWER_MIN", "2"))
-YT_VIEWER_ALERT_COOLDOWN = 300  # Seconds before re-alerting when crossing YT_VIEWER_ALERT_MIN
+YT_VIEWER_ALERT_COOLDOWN = int(os.environ.get("PIPULATE_YT_VIEWER_COOLDOWN", "300"))  # Seconds between any two viewer alerts
 
 DEFAULT_TARGETS = {
     "1": {
@@ -1898,13 +1898,10 @@ def run_youtube_watch(
                 continue
             viewers = state["concurrent_viewers"]
             now = time.time()
-            crossed_min = (
-                prev_viewers < YT_VIEWER_ALERT_MIN
-                and viewers >= YT_VIEWER_ALERT_MIN
-                and (now - last_viewer_alert) > YT_VIEWER_ALERT_COOLDOWN
-            )
+            cooldown_ok = (now - last_viewer_alert) > YT_VIEWER_ALERT_COOLDOWN
+            crossed_min = prev_viewers < YT_VIEWER_ALERT_MIN and viewers >= YT_VIEWER_ALERT_MIN
             new_peak = viewers >= YT_VIEWER_ALERT_MIN and viewers > peak_viewers
-            if crossed_min or new_peak:
+            if (crossed_min or new_peak) and cooldown_ok:
                 peak_viewers = max(peak_viewers, viewers)
                 last_viewer_alert = now
                 alert_msg = f"{viewers} watching now (min={YT_VIEWER_ALERT_MIN}) — {state['title']}"
