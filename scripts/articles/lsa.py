@@ -321,17 +321,48 @@ def print_contiguity_report(anomalies):
     console.print(table)
 
 
+_NEG_SLICE_OR_IDX_RE = re.compile(r'^-\d*:-?\d*(?::-?\d*)?$|^-\d+$')
+
+
+def _normalize_slice_argv(argv: list[str]) -> list[str]:
+    """Rewrite negative slice/index tokens (e.g. '-6:-2', '-5:', '-2') into
+    '--slice=...' or '--article=...' so argparse does not mistake them for flags."""
+    out = []
+    i = 0
+    while i < len(argv):
+        tok = argv[i]
+        if tok in ('--slice', '-a', '--article') and i + 1 < len(argv):
+            out.append(f"{tok}={argv[i + 1]}")
+            i += 2
+            continue
+        if _NEG_SLICE_OR_IDX_RE.match(tok):
+            out.append(f"--slice={tok}")
+            i += 1
+            continue
+        out.append(tok)
+        i += 1
+    return out
+
+
 def parse_slice_arg(arg_str: str):
-    """Parses a string like '[-5:]' into a valid Python slice object."""
-    if not arg_str or not arg_str.startswith('[') or not arg_str.endswith(']'): return None
-    content = arg_str[1:-1].strip()
-    if ':' in content:
-        parts = content.split(':', 1)
-        start = int(parts[0].strip()) if parts[0].strip() else None
-        end = int(parts[1].strip()) if parts[1].strip() else None
-        return slice(start, end)
-    elif content: return int(content)
-    return slice(None, None)
+    """Parses a Python slice or index string (with or without brackets, e.g. '-6:-2', '[-5:]', '-2')."""
+    if not arg_str:
+        return None
+    content = arg_str.strip()
+    if content.startswith('[') and content.endswith(']'):
+        content = content[1:-1].strip()
+    if not content:
+        return None
+    try:
+        if ':' in content:
+            parts = content.split(':')
+            if len(parts) > 3:
+                return None
+            vals = [int(p.strip()) if p.strip() else None for p in parts]
+            return slice(*vals)
+        return int(content)
+    except ValueError:
+        return None
 
 
 def print_shard_header(filepath: str, prefix: str = "#   "):
@@ -425,17 +456,29 @@ def main():
     parser.add_argument('--fmt', type=str, default='full', choices=['full', 'paths', 'slugs', 'dated-slugs', 'body'], help="Output format: 'full' (default, with comments), 'paths' (bare absolute paths), 'slugs', 'dated-slugs', or 'body' (full article markdown content, defaults to --last 1)")
     parser.add_argument('--slugs', nargs='+', default=None, metavar='SLUG', help="Select articles by exact slug match (space-separated, no date prefix needed)")
     parser.add_argument('-v', '--vim', action='store_true', help="Open the selected articles in Neovim/Vim (newest-first in buffer 1 by default so :bn walks back in time like rgx -v; pass -r for oldest-first)")
-    parser.add_argument('bare_last', nargs='?', type=int, default=None, metavar='N', help="Optional bare number for recent article count (sugar for --last N)")
+    parser.add_argument('--slice', type=str, default=None, metavar='SLICE', help="Select articles by Python slice or index (e.g., '-6:-2', '-5:', ':-2', '-2', '[-6:-2]')")
+    parser.add_argument('bare_last', nargs='?', type=str, default=None, metavar='N_OR_SLICE', help="Optional bare number for recent article count (sugar for --last N) or Python slice/index (e.g., -6:-2, -5:, -2)")
     parser.add_argument('--clear-cache', action='store_true', help="Purge the token cache file before processing")
     parser.add_argument('--stdin', action='store_true', help="Read file paths or filenames from standard input instead of scanning the directory")
     parser.add_argument('--shards', action='store_true', help="Interleave each article's holographic shard (keywords + summary) from _context/ beneath its listing line (full format only)")
     parser.add_argument('--around', type=int, default=None, metavar='N', help="With --terms, print ±N lines of context around each case-insensitive hit (full format only)")
     parser.add_argument('--terms', nargs='+', default=None, metavar='TERM', help="Search terms for --around hit-region extraction (case-insensitive fixed strings)")
-    args = parser.parse_args()
+    args = parser.parse_args(_normalize_slice_argv(sys.argv[1:]))
 
-    if args.bare_last is not None and args.last is None:
-        args.last = args.bare_last
-    if args.fmt == 'body' and args.last is None and args.top is None:
+    if args.bare_last is not None:
+        raw_bare = args.bare_last.strip()
+        if raw_bare.isdigit() and int(raw_bare) > 0:
+            if args.last is None:
+                args.last = int(raw_bare)
+        elif args.slice is None:
+            args.slice = raw_bare
+    slice_spec = None
+    if args.slice is not None:
+        slice_spec = parse_slice_arg(args.slice)
+        if slice_spec is None:
+            print(f"❌ Invalid slice or index: {args.slice}. Use N (e.g. 10) or Python slice/index (e.g. -6:-2, -5:, -2).", file=sys.stderr)
+            sys.exit(1)
+    if args.fmt == 'body' and args.last is None and args.top is None and slice_spec is None and not args.slugs and not args.match:
         args.last = 1
 
     targets = load_targets()
@@ -477,10 +520,9 @@ def main():
     # opens in buffer 1, so -v defaults to Newest First (matching rgx -v and
     # rgxc -v) so :bn walks backward in time from today's post. Passing -r with
     # -v flips it back to Oldest First.
-    if args.vim:
-        args.reverse = not args.reverse
-    # Determine the sort description based on the reverse flag
-    sort_desc = "Newest First" if args.reverse else "Oldest First"
+    display_reverse = (not args.reverse) if args.vim else args.reverse
+    # Determine the sort description based on the effective display order
+    sort_desc = "Newest First" if display_reverse else "Oldest First"
     
     # Suppress header for machine-readable output formats
     if args.fmt not in ('paths', 'slugs', 'dated-slugs'):
@@ -587,6 +629,16 @@ def main():
         else:
             metadata = metadata[-args.last:]
 
+    # --slice: Python slice (e.g. -6:-2, -5:, :-2) or single index (e.g. -2, [0])
+    if slice_spec is not None:
+        if isinstance(slice_spec, slice):
+            metadata = metadata[slice_spec]
+        else:
+            try:
+                metadata = [metadata[slice_spec]]
+            except IndexError:
+                metadata = []
+
     # --top: limit after sort+filter
     if args.top is not None:
         metadata = metadata[:args.top]
@@ -631,7 +683,7 @@ def main():
         if not editor:
             print("❌ Error: Neither nvim nor vim found on PATH.", file=sys.stderr)
             sys.exit(1)
-        paths = [item['path'] for item in metadata]
+        paths = [item['path'] for item in reversed(metadata)]
         os.execvp(editor, [editor] + paths)
 
     # --- PASS 2: OUTPUT GENERATION (REPORT OR COMMAND) ---
