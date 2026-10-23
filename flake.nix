@@ -2544,6 +2544,7 @@ print('AI:\n', r.ai)
           ytwatch()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch  "$@"; }
           ytlog()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast watch attach "$@"; }
           yttop()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast top   "$@"; }
+          ytmedia()  { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/articles/common.py" --broadcast say -m "$@"; }
           ytapp()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/ytstage.py" app "$@"; }
           ytvim()    { "$PIPULATE_ROOT/.venv/bin/python" "$PIPULATE_ROOT/scripts/ytstage.py" vim "$@"; }
 
