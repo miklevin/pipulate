@@ -266,6 +266,10 @@ class Narrator(threading.Thread):
         """Queue a TUI report window overlay so it fires in voice-order on a daemon thread."""
         self.queue.put(("WINDOW", payload))
 
+    def media(self, payload):
+        """Queue an image or video popup overlay so it fires in voice-order on a daemon thread."""
+        self.queue.put(("MEDIA", payload))
+
     def interrupt(self):
         """Preempt the voice: drop everything queued-but-unspoken and kill the
         audio playing RIGHT NOW, so an urgent line plays immediately instead of
@@ -328,6 +332,13 @@ class Narrator(threading.Thread):
                         target=conjure_window,
                         args=(win_script,),
                         kwargs={"duration": win_dur, "args": win_args},
+                        daemon=True,
+                    ).start()
+                    time.sleep(0.5)
+                elif isinstance(item, tuple) and item and item[0] == "MEDIA":
+                    threading.Thread(
+                        target=conjure_media,
+                        args=(item[1],),
                         daemon=True,
                     ).start()
                     time.sleep(0.5)
@@ -541,6 +552,131 @@ def stop_updating_music(proc):
         os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
     except Exception:
         pass
+
+
+MEDIA_OVERLAY_MARKER = "honeybot_media_overlay"
+
+
+def _resolve_honeybot_media_target(raw_target):
+    """Resolve a local path, site-relative '/assets/...' path, or URL on Honeybot."""
+    s = str(raw_target or "").strip()
+    if not s:
+        return ""
+    if s.startswith(("http://", "https://", "file://")):
+        return s
+    site_root = Path(__file__).resolve().parents[1]
+    candidates = [
+        Path(s).expanduser(),
+        site_root / "_site" / s.lstrip("/"),
+        site_root / s.lstrip("/"),
+        Path("/home/mike/www/mikelev.in/_site") / s.lstrip("/"),
+        Path("/home/mike/www/mikelev.in") / s.lstrip("/"),
+    ]
+    for c in candidates:
+        if c.is_file():
+            return str(c.resolve())
+    return s
+
+
+def conjure_media(media_spec, duration=15.0, mute=False):
+    """Pop up an image or video over the Honeybot :10.0 stream using mpv, feh, or Firefox fallback."""
+    if isinstance(media_spec, dict):
+        raw_target = str(media_spec.get("path") or media_spec.get("url") or "").strip()
+        duration = float(media_spec.get("duration", duration))
+        mute = bool(media_spec.get("mute", mute))
+    else:
+        raw_str = str(media_spec or "").strip()
+        if ":" in raw_str and not raw_str.startswith(("http://", "https://", "file://")):
+             head, tail = raw_str.rsplit(":", 1)
+             try:
+                 duration = float(tail.strip())
+                 raw_target = head.strip()
+             except ValueError:
+                 raw_target = raw_str
+        else:
+            raw_target = raw_str
+    target = _resolve_honeybot_media_target(raw_target)
+    if not target:
+        return
+    duration = max(1.0, min(600.0, float(duration)))
+    env = os.environ.copy()
+    env["DISPLAY"] = env.get("DISPLAY") or ":10.0"
+    ext = os.path.splitext(target.split("?", 1)[0])[1].lower()
+    is_video = ext in (".mp4", ".webm", ".mkv", ".mov", ".gif")
+
+    proc = None
+    tmp_profile = None
+    try:
+        if is_video and shutil.which("mpv"):
+            cmd = [
+                "mpv",
+                f"--title={MEDIA_OVERLAY_MARKER}",
+                "--no-border",
+                "--ontop",
+                "--geometry=82%x82%+50%+50%",
+                "--keep-open=no",
+                "--really-quiet",
+                f"--length={duration:.1f}",
+            ]
+            if mute:
+                cmd.append("--mute=yes")
+            cmd.append(target)
+            proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc.wait(timeout=duration + 2.0)
+        elif not is_video and shutil.which("feh") and not target.startswith(("http://", "https://")):
+            cmd = [
+                "feh",
+                "--title", MEDIA_OVERLAY_MARKER,
+                "--borderless",
+                "--auto-zoom",
+                "--geometry", "1440x810+240+135",
+                target,
+            ]
+            proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(0.4)
+            subprocess.run(["wmctrl", "-r", MEDIA_OVERLAY_MARKER, "-b", "add,above"], env=env, check=False)
+            proc.wait(timeout=duration)
+        elif shutil.which("mpv"):
+            cmd = [
+                "mpv",
+                f"--title={MEDIA_OVERLAY_MARKER}",
+                "--no-border",
+                "--ontop",
+                "--geometry=82%x82%+50%+50%",
+                f"--image-display-duration={duration:.1f}",
+                "--really-quiet",
+                target,
+            ]
+            proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc.wait(timeout=duration + 2.0)
+        elif shutil.which("firefox"):
+            tmp_profile = tempfile.mkdtemp(prefix=f"{MEDIA_OVERLAY_MARKER}_")
+            uri = target if target.startswith(("http://", "https://", "file://")) else Path(target).resolve().as_uri()
+            proc = subprocess.Popen(
+                ["firefox", "--profile", tmp_profile, "--no-remote", "--new-instance", uri],
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            time.sleep(0.8)
+            subprocess.run(["wmctrl", "-r", "Mozilla Firefox", "-b", "add,fullscreen,above"], env=env, check=False)
+            proc.wait(timeout=duration)
+    except subprocess.TimeoutExpired:
+        pass
+    except Exception:
+        pass
+    finally:
+        if proc and proc.poll() is None:
+            try:
+                proc.terminate()
+                proc.wait(timeout=1.5)
+            except Exception:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+        if tmp_profile and os.path.isdir(tmp_profile):
+            shutil.rmtree(tmp_profile, ignore_errors=True)
 
 
 def conjure_window(script_name, duration=30.0, columns=100, lines=30, args=None):
@@ -777,6 +913,12 @@ def dispatch_cue(command, content, env, profile_dir, pace_say=True):
     elif command == "PATRONUS":
         narrator.patronus(content)
 
+    elif command in ("MEDIA", "IMAGE", "VIDEO"):
+        if not pace_say:
+            narrator.media(content)
+        else:
+            conjure_media(content)
+
     elif command == "WINDOW":
         # Grammar: "script.py" | "script.py:seconds" | "script.py:seconds:arg".
         # Queued via narrator.window() when pace_say=False so station-break
@@ -825,7 +967,7 @@ def run_live_message(msg, env, profile_dir):
     try:
         t_cut = time.time()
         narrator.interrupt()
-        for pat in ("conjure_window_overlay", "patronus_visual_shield"):
+        for pat in ("conjure_window_overlay", "patronus_visual_shield", MEDIA_OVERLAY_MARKER):
             try:
                 subprocess.run(["pkill", "-f", pat], check=False)
             except Exception:
@@ -844,6 +986,8 @@ def run_live_message(msg, env, profile_dir):
         card_label = msg.get("card", "") if isinstance(msg, dict) else "LIVE\\nFROM MIKE"
         say_text = msg.get("say", "") if isinstance(msg, dict) else str(msg)
         patronus_key = msg.get("patronus") if isinstance(msg, dict) else None
+        media_spec = msg.get("media") if isinstance(msg, dict) else None
+        window_spec = msg.get("window") if isinstance(msg, dict) else None
         hold = float(msg.get("duration", 120.0)) if isinstance(msg, dict) else 120.0
         # Pre-synthesize during the pre-banner silence so the 3.0s palate cleanser
         # absorbs Piper synthesis time and the banner speaks the instant it pops.
@@ -851,21 +995,39 @@ def run_live_message(msg, env, profile_dir):
         rem = pre_pause - (time.time() - t_cut)
         if rem > 0:
             time.sleep(rem)
-        if patronus_key:
+        if patronus_key or media_spec or window_spec:
             if card_label:
                 dispatch_cue("CARD", {"label": card_label, "say": "", "duration": 2.5, "linger": 2.5}, env, profile_dir, pace_say=True)
-            conjure_patronus(patronus_key, duration=hold)
+            if patronus_key:
+                conjure_patronus(patronus_key, duration=hold)
+            elif media_spec:
+                threading.Thread(
+                    target=conjure_media,
+                    args=(media_spec,),
+                    kwargs={"duration": hold},
+                    daemon=True,
+                ).start()
+                time.sleep(0.4)
+            elif window_spec:
+                threading.Thread(
+                    target=dispatch_cue,
+                    args=("WINDOW", window_spec, env, profile_dir),
+                    kwargs={"pace_say": True},
+                    daemon=True,
+                ).start()
+                time.sleep(0.4)
             if say_text:
                 narrator.play_raw(raw_path, fallback_text=say_text)
                 narrator.queue.join()
                 if linger > 0:
                     time.sleep(linger)
             else:
-                time.sleep(min(hold, max(4.0, linger)))
-            try:
-                subprocess.run(["pkill", "-f", "patronus_visual_shield"], check=False)
-            except Exception:
-                pass
+                time.sleep(min(hold, max(6.0, linger)))
+            for pat in ("patronus_visual_shield", "conjure_window_overlay", MEDIA_OVERLAY_MARKER):
+                try:
+                    subprocess.run(["pkill", "-f", pat], check=False)
+                except Exception:
+                    pass
         else:
             dispatch_cue(
                 "CARD",
@@ -935,7 +1097,7 @@ def run_station_break(env, profile_dir):
         for cue_command, cue_content in bead:
             dispatch_cue(cue_command, cue_content, env, profile_dir, pace_say=False)
         wait_for_voice_or_live_interrupt(env, profile_dir)
-        for pat in ("patronus_visual_shield", "conjure_window_overlay"):
+        for pat in ("patronus_visual_shield", "conjure_window_overlay", MEDIA_OVERLAY_MARKER):
             try:
                 subprocess.run(["pkill", "-f", pat], check=False)
             except Exception:
