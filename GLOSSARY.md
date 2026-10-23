@@ -3615,6 +3615,12 @@ Entries are alphabetical, numbers spelled as spoken.
 # an explicit or implicit "your turn" = the Tortoise is being summoned.
 ~~~
 
+- **The Train Has No Switches** -- *expanded rule; banked 2026-09-18.*
+
+~~~text
+# - EARMARK: THE TRAIN HAS NO SWITCHES (captured 2026-09-18 at the operator's request, deliberately unruled: "I took all the Cars"): the operator runs the \m template linearly, patch, app, d, m per car, and anything the emitter phrases as a choice ("if you veto Car 2b, change two words"; "drop these two files if the payload runs heavy") is a switch on a track laid for one line; the operator will take every car or stop the train and never throw the switch, so a conditional in the prose is a branch nobody takes and a label that can end up lying. Two such switches rode deed 1469 unthrown. The shape that fits the template: a car whose truth depends on another car landing carries its own gate (the sed spans did) or rides in the same car, and a choice is a TODO, never a fork inside PATCHES. Sibling of THE COACHMAN'S VETO (a whole train or one car, never a branch) and THE UNASKED SECOND WINDOW (the unraised question is a TODO). The fix is deferred by ruling; this line is the article's capture.
+~~~
+
 - **The Two-Hand Test Is Not A Test** -- *expanded rule; banked 2026-08-04.*
 
 ~~~text
