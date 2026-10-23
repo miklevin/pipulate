@@ -993,6 +993,12 @@ Entries are alphabetical, numbers spelled as spoken.
 ~~~
 
 - **The Churning-Key Rule** -- (banked 2026-07-31, receipt-witnessed): an aggregate grouped by a key the SUBJECT CONTROLS AND REVS systematically under-counts every subject that revs it, and the under-count is INVISIBLE because the survivors look like a complete list. Conviction: hydration_rate.sql grouped by ua_id and Googlebot never appeared in its top twenty -- not because Googlebot does not crawl, but because it ships 20+ distinct UA strings on this site (bare Googlebot, GoogleBot/2.1, -Image, -News, -Video, -Mobile, the classic +http form, and one Chrome-smartphone variant PER RELEASE: 117, 125, 126, 141, 143 x2, 144 x2, 145 x2, 146 x3), so every fragment fell below the html_hits floor. claude-code ships ~41 strings and vanished the same way; meta-externalagent split three ways and PetalBot two. THE FLOOR DID NOT FAIL, THE KEY DID -- and the resulting ranking was silently biased toward crawlers with STABLE UA strings (bingbot, Amazonbot), which is the opposite of a finding. STANDING CONSEQUENCE: before reading any GROUP BY, ask whether the subject controls the grouping key and whether it changes it; if so, roll up to a family before quoting any ranking, and keep an Unclassified bucket, because a rollup with no residue is a rollup that is hiding something. Sibling of THE LAST-INCH RULE: that one is the RENDER destroying identity after the group; this one is the KEY destroying identity before it.
+- **The Coachman's Veto** -- *expanded rule; banked 2026-07-20.*
+
+~~~text
+# - EARMARK: THE COACHMAN'S VETO (banked 2026-07-20): an emitted patch train is a PROPOSAL until the human runs `app`; refusing an entire train costs nothing (no dead cars -- nothing was applied) and is the correct move when the strategy beneath it shifts. The Horse has instincts; the coachman has been down the road. Witness: the measure.py train of 2026-07-20, refused at the platform, redirected into the MAPPER LANE.
+~~~
+
 - **The Codex-As-Datastructure Rule** -- *expanded rule; banked 2026-07-22.*
 
 ~~~text
