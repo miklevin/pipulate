@@ -797,6 +797,24 @@ Entries are alphabetical, numbers spelled as spoken.
 # - WALLET DESCRIPTOR LANE (opened 2026-07-20): one richly-annotated wallet (connectors.json today; eventually connectors.nix -> materialized JSON, blogs.nix pattern) where every credential carries a human-facing description -- what it is, which Cloud project, which scopes, which connectors consume it, where the secret file lives, rotation notes. Names/paths/descriptions only, never secret values. The cure to auth opacity: left hand and right hand read the same illuminated page, and it stays joyful to touch.
 ~~~
 
+- **The Axis Ledger** -- *expanded rule; banked 2026-07-30.*
+
+~~~text
+# THE AXIS LEDGER (debt discharged 2026-07-30; formerly THE UNBANKED-AXIS
+# DEBT, owed to pin 2026-07-19): a banked axis is a RECORD, not constitution.
+# Structured fields (anchors, rival predictions, cheapest discriminating
+# probe, verdict) belong in an append-only LEDGER, not this comment block.
+# It lives at assets/axis_ledger.jsonl -- TRACKED, so it rides in every
+# cartridge; a gitignored data/ home was rejected because a ledger a
+# cartridge cannot carry defeats banking-for-reuse. One JSONL record per
+# axis: run_date, id, anchors{a,b}, rival_predictions{a,b},
+# probe{cmd,observes,receipt}, verdict{picked,why}. Append by hand; do NOT
+# build a thirty.py generator (that puts the model where taste belongs -- the
+# 30 is a KATA), only the ledger and its naming convention. First record
+# banked 2026-07-30: fence-vs-lean-back (verdict open pending the
+# three-fresh-thread cross-domain run).
+~~~
+
 - **The Axis-Forcing Rule** -- *expanded rule; banked 2026-07-19.*
 
 ~~~text
