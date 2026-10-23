@@ -1110,6 +1110,41 @@ def run_station_break(env, profile_dir):
         narrator.exclusive_mode.clear()
 
 
+REBOOT_ANNOUNCEMENT_TEXT = (
+    "Scheduled four hour station reset. "
+    "Honeybot is about to perform a routine five second memory refresh and restart the broadcast loop. "
+    "Do not adjust your set. The live stream will stay connected and storytime will resume in just a few seconds."
+)
+_reboot_announced = False
+
+
+def announce_scheduled_reboot():
+    """Announce the 4-hour memory-purging restart with a Figlet card and blocking TTS before exiting."""
+    global _reboot_announced
+    if _reboot_announced:
+        return
+    _reboot_announced = True
+    narrator.exclusive_mode.set()
+    try:
+        narrator.interrupt()
+        for pat in ("conjure_window_overlay", "patronus_visual_shield", MEDIA_OVERLAY_MARKER, "firefox"):
+            try:
+                subprocess.run(["pkill", "-f", pat], check=False)
+            except Exception:
+                pass
+        raw_path = narrator.prep_raw(REBOOT_ANNOUNCEMENT_TEXT)
+        card_handle = show_card("SCHEDULED\nREBOOT", max_hold=45.0)
+        try:
+            time.sleep(0.2)
+            narrator.play_raw(raw_path, fallback_text=REBOOT_ANNOUNCEMENT_TEXT)
+            narrator.queue.join()
+            time.sleep(1.5)
+        finally:
+            dismiss_card(card_handle)
+    except Exception:
+        pass
+
+
 def perform_show(script):
     """Reads the sheet music list and executes it."""
     # Idempotent safety net: whenever we start performing ANY fresh script --
@@ -1154,14 +1189,9 @@ def perform_show(script):
         for command, content in script:
 
             # --- The Timer Interrupt ---
-            # If we exceed the duration, we return False to restart the cycle.
-            # This allows the "Preamble" to run again in the next loop.
+            # If we exceed the duration, announce the scheduled reboot and return False.
             if (time.time() - start_time) > duration_seconds:
-                narrator.say("Cycle complete. Refreshing narrative feed.")
-                # Close browser just in case
-                try:
-                    subprocess.run(["pkill", "firefox"], check=False)
-                except: pass
+                announce_scheduled_reboot()
                 return False
 
             # --- The Deploy Stand-By Handshake ---
@@ -1375,8 +1405,8 @@ def main():
 
     run_tui_app("logs.py", duration=SHOW_DURATION_MINUTES)
 
-    # Outro
-    narrator.say("Cycle complete. Rebooting visualization sequence.")
+    # Outro: announce the 4-hour scheduled restart on-air and wait for speech to finish before exiting
+    announce_scheduled_reboot()
     narrator.stop()
 
 
