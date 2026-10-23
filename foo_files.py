@@ -502,22 +502,7 @@ And then we demonstrate a level of competence like so:
 # § THE LANE-DISAGREEMENT WITNESS (banked 2026-08-01) -- When one lane is structurally blind to a patch, run the identical probe in both lanes and use the expected output disagreement as the witness; label every receipt with its lane.
 # § CEREMONY IS SKIPPABLE; BARRIERS ARE NOT (banked 2026-08-01) -- Allow flags to skip sequence-opening ceremony only, never the per-write human fence, and use the existing unfenced capture lane rather than introducing a bypass that makes write authorization depend on auditing every call site.
 # § THE REFUSAL-ONLY WITNESS (banked 2026-08-01) -- Treat a fence as unwitnessed until an authorized passage through it has been observed, and label refusal receipts as evidence of the closed branch only rather than proof that the guard can open.
-# THE FLIGHT-RECORDER POSITIONING (earmark-seeded 2026-07-28, MCK build ride):
-# the product is NOT "compile a context payload" -- anyone concatenates files.
-# It is the human-gated, LOCAL, AUTHENTICATED wire-truth CAPTURE of proprietary
-# browser state: the one move a cloud sandbox structurally cannot inherit,
-# because SETTLE needs the operator's own logged-in profile on disk. LANGUAGE:
-# "determinism" is a retired SALES word (icon, not pitch -- no retcon); sell the
-# RECORDER, the receipt, the noun that cannot be faked, NEVER "verifiably
-# hallucination-free" (a badge that Goodharts the instant it ships without the
-# receipt). An LLM re-narrating wire truth is an UNRELIABLE NARRATOR
-# (confabulation), NOT a man-in-the-middle -- no interposition, just a lossy
-# self-report, the same variance-suppression the magic mirror commits. OWES: the
-# side-by-side WITNESS -- one live MCK Rep 2 that captures a gated client URL
-# while a sandboxed Claude Artifact fails to inherit the session. Until those two
-# runs sit side by side the moat is a CLAIM, not a measurement; delete this OWES
-# the day the receipt exists. Ref:
-# /futureproof/dayton-wind-tunnel-auth-capture-mother-cat/.
+# § THE FLIGHT-RECORDER POSITIONING (banked 2026-07-28) -- Sell the RECORDER (the human-gated, local, authenticated wire-truth capture a cloud sandbox cannot inherit), never the retired word "determinism" or a "hallucination-free" badge, and treat a model re-narrating wire truth as an unreliable narrator rather than a man-in-the-middle; the moat stays a claim until the side-by-side MCK Rep 2 witness exists.
 # § THE ARTIFACT-OF-RECORD RULE (banked 2026-07-19) -- Attach only the final deliberately reviewed qamy.ai_<deed>-<hash8>.zip as the complete artifact of record, keep qamy.ai.zip as the mutable working alias and older snapshots as local history, and never rename historical archives or invent dependent per-ticket bundles without witnessed need.
 # § THE MCP RECEIPT RULE (banked 2026-07-29, amended 2026-09-27) -- a model-mediated tool call enters this system as a receipt or not at all: the endpoint and the four-tuple (server, verb, tool, args) emitted verbatim, with the HTTP method, the encoding that carried the arguments and the order where the API is order-sensitive, every value known without its parameter name spelled "value known, parameter unknown", and one line for what the harness may have added and the model cannot see (timestamps, locale, headers), stated as unknowns rather than omitted; web searches for research are exempt, a reply that made no call says "Tool calls this turn: none", and one that cannot spell its calls out says so, its readings confabulation until reproduced; plus a determinism class -- D0 deterministic, D1 stable read, D2 time-varying and INADMISSIBLE as evidence -- and an OBSERVED or INFERRED label on every line; the envelope is INFERRED until the operator's own replay client witnesses it once, then PINNED. A remote server's upstream traffic is invisible to every client instrument, so the MCP call is the deepest reproducible layer, and the manifest is a MAP a model cannot see go stale.
 # § THE TWO-RECORDER RULE (banked 2026-07-29) -- the FDR records machine-sampled parameters, the CVR records what the humans said; when they disagree the FDR wins on parameters and the CVR on intent. Three surfaces, authority only decreasing: a wire receipt persisted by our process, a tool transcript handed to the model, narrative prose -- and a sentence never carries more authority than the surface that fed it. Capable-of-FDR is not FDR until the response side is persisted; an FDR without its frame doc is no evidence. Hosted MCP flies on an experimental certificate: dispatch it when being wrong costs a rerun, the connector lane when output leaves with our name on it; report in NTSB shape, where UNKNOWN is a valid instrument reading.

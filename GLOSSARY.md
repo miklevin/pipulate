@@ -1726,6 +1726,27 @@ Entries are alphabetical, numbers spelled as spoken.
 # THE FLAG WENT COLD (banked 2026-09-17, census-convicted one compile late). When a load moves from import time to first use, every reader of its readiness flag moves in the SAME car, because the flag's meaning changed under them: voice_ready meant the model is on disk and now means something in this process has already spoken. CONVICTION: the lazy load shipped in imports/voice_synthesis.py without a grep for the flag's readers, and the next compile's census read voice_ready gating BEFORE speak_text in four untouched files (apps/010_introduction.py, pipulate/core.py, server.py, tools/mcp_tools.py), every gate shut in every fresh process, the wand's voice, the introduction app and the registered voice_synthesis tool silent on a machine that said yes and reporting not-ready. CURE: the speaker grows the question the callers meant to ask, can_speak() = consent and load, and each caller swaps one word. STANDING CONSEQUENCE: grep the readers of a flag before deferring what sets it. Sibling of THE SAME-CAR LABEL RULE (a moved gate drags its labels) and THE PROTECTION-LAG POLARITY (an added protection understates itself in stale strings); here the stale thing is a boolean, not a string, and it lies with a False.
 ~~~
 
+- **The Flight-Recorder Positioning** -- *expanded rule; banked 2026-07-28.*
+
+~~~text
+# THE FLIGHT-RECORDER POSITIONING (earmark-seeded 2026-07-28, MCK build ride):
+# the product is NOT "compile a context payload" -- anyone concatenates files.
+# It is the human-gated, LOCAL, AUTHENTICATED wire-truth CAPTURE of proprietary
+# browser state: the one move a cloud sandbox structurally cannot inherit,
+# because SETTLE needs the operator's own logged-in profile on disk. LANGUAGE:
+# "determinism" is a retired SALES word (icon, not pitch -- no retcon); sell the
+# RECORDER, the receipt, the noun that cannot be faked, NEVER "verifiably
+# hallucination-free" (a badge that Goodharts the instant it ships without the
+# receipt). An LLM re-narrating wire truth is an UNRELIABLE NARRATOR
+# (confabulation), NOT a man-in-the-middle -- no interposition, just a lossy
+# self-report, the same variance-suppression the magic mirror commits. OWES: the
+# side-by-side WITNESS -- one live MCK Rep 2 that captures a gated client URL
+# while a sandboxed Claude Artifact fails to inherit the session. Until those two
+# runs sit side by side the moat is a CLAIM, not a measurement; delete this OWES
+# the day the receipt exists. Ref:
+# /futureproof/dayton-wind-tunnel-auth-capture-mother-cat/.
+~~~
+
 - **The Folder Is a Variable** -- *a hand fence runs where the prompt stands,
   and only app resolves the root.* Banked 2026-09-29, convicted twice in one
   paste at deed 1677; graduated at the dismount of the same ride, deed 1679.
