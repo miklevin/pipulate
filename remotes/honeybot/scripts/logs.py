@@ -336,6 +336,34 @@ class SonarApp(App):
         except:
             return "???", request_str
 
+    def format_host_domain(self, raw_host):
+        """Normalize Nginx $host into the registered domain name without leaking raw IP headers."""
+        h = (raw_host or "").strip().lower().split(":", 1)[0].rstrip(".")
+        if h.startswith("www."):
+            h = h[4:]
+        if not h or h == "-" or h == "localhost" or h.endswith(".local"):
+            return "mikelev.in"
+        if re.match(r"^\d+(\.\d+)+$", h) or ":" in h:
+            return "mikelev.in"
+        for known in (
+            "mikelev.in", "qamy.ai", "npvg.org",
+            "levinix.org", "levinix.com", "levinux.com",
+            "pipulate.com", "guerillatech.com", "rfc9110.org", "rfc9111.io", "rfc9111.com",
+        ):
+            if h == known or h.endswith("." + known):
+                return known
+        if "qamy" in h:
+            return "qamy.ai"
+        if "npvg" in h:
+            return "npvg.org"
+        if "levinix" in h:
+            return "levinix.org"
+        if "levinux" in h:
+            return "levinux.com"
+        if re.match(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$", h):
+            return h
+        return "mikelev.in"
+
     @work(thread=True)
     def stream_logs(self) -> None:
         hits = 0
@@ -463,17 +491,8 @@ class SonarApp(App):
             text.append(f"[{time_str}] ", style="dim")
         except: text.append("[TIME] ", style="dim")
 
-        host = (data.get('host') or '').lower()
-        if 'qamy' in host:
-            text.append("[QAMY] ", style="bold magenta")
-        elif 'npvg' in host:
-            text.append("[NPVG] ", style="bold yellow")
-        elif 'levinix' in host:
-            text.append("[LNIX] ", style="bold green")
-        elif 'levinux' in host:
-            text.append("[LNUX] ", style="bold bright_yellow")
-        else:
-            text.append("[LEVN] ", style="bold cyan")
+        domain_label = self.format_host_domain(data.get('host'))
+        text.append(f"[{domain_label}] ", style="bold bright_white")
 
         text.append(ip_display)
         text.append("  ") # Just space
