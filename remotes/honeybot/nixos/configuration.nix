@@ -515,6 +515,8 @@
     fastfetch   # System info display (faster neofetch)
     bc          # Calculator (useful for timing math if needed)
     eza         # tree-command alternative that uses .gitignore as filter
+    mpv         # Borderless video/GIF/image overlay player for MEDIA cues
+    feh         # Lightweight X11 image viewer for MEDIA cues
 
     # 🗣️ THE VOICE (System Capability)
     piper-tts
