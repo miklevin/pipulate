@@ -3221,6 +3221,21 @@ Entries are alphabetical, numbers spelled as spoken.
   An installer that re-resolves against a moving channel is a pip; a pinned
   lock is a graft. The lock was pinned 2026-08-01, so the distribution story is
   grafting now and the language should say so.
+- **The Self-Healing Fence Amendment** -- *pending amendment; seeded 2026-07-23.*
+
+~~~text
+# THE SELF-HEALING FENCE AMENDMENT (PENDING 2026-07-23): sanitizer.py's
+# fence contract rule 2 no longer refuses a naked opening fence; it tags
+# it `text` in place, writes the heal back to article.txt, and prints a
+# heal count. The state machine has ALREADY classified the run as an
+# opener before the old complaint fired, so the repair was fully
+# determined -- refusal only made the human retype what the machine
+# already knew. Rule 3 (labeled fence while one is open) and EOF-unclosed
+# still fail CLOSED. WITNESS OWED: a compiled receipt showing a nonzero
+# heal count against a file with known naked openers. The flip to banked
+# is its own chisel-strike.
+~~~
+
 - **The Self-Matching Pattern** -- *expanded rule; banked 2026-08-05.*
 
 ~~~text
