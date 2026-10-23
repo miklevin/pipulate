@@ -1196,6 +1196,8 @@ def send_honeybot_live_message(
     say_text,
     card_label=None,
     patronus_key=None,
+    media_path=None,
+    window_spec=None,
     pre_pause=3.0,
     linger=2.5,
     dry_run=False,
@@ -1207,6 +1209,8 @@ def send_honeybot_live_message(
     raw_lines = [ln.strip() for ln in (say_text or "").splitlines() if ln.strip()]
     cli_card = card_label is not None
     cli_patronus = patronus_key is not None
+    cli_media = media_path is not None
+    cli_window = window_spec is not None
     while raw_lines:
         head_upper = raw_lines[0].upper()
         if head_upper.startswith("CARD:") and not cli_card:
@@ -1215,14 +1219,19 @@ def send_honeybot_live_message(
                 card_label = f"{card_label}\n{val}" if card_label else val
         elif head_upper.startswith("PATRONUS:") and not cli_patronus:
             patronus_key = raw_lines.pop(0)[9:].strip()
+        elif head_upper.startswith(("MEDIA:", "IMAGE:", "VIDEO:")) and not cli_media:
+            media_path = raw_lines.pop(0).split(":", 1)[1].strip()
+        elif head_upper.startswith("WINDOW:") and not cli_window:
+            window_spec = raw_lines.pop(0)[7:].strip()
         else:
             break
     clean_say = " ".join(" ".join(raw_lines).split())
-    if not clean_say and not card_label and not patronus_key:
-        print("Usage: ytsay [-c 'CARD\\nTEXT'] [-p patronus_key] [--pre 3.0] [--linger 2.5] [--clip] [--dry-run] 'Message to speak live'")
+    if not any((clean_say, card_label, patronus_key, media_path, window_spec)):
+        print("Usage: ytsay [-c 'CARD\\nTEXT'] [-p patronus_key] [-m image_or_video] [-w window_spec] [--pre 3.0] [--linger 2.5] [--clip] [--dry-run] 'Message to speak live'")
         return 1
+    has_visual_override = bool(patronus_key or media_path or window_spec)
     if card_label is None:
-        resolved_card = "" if patronus_key else "LIVE\nFROM MIKE"
+        resolved_card = "" if has_visual_override else "LIVE\nFROM MIKE"
     else:
         resolved_card = str(card_label).replace("\\n", "\n")
     payload = {
@@ -1234,6 +1243,10 @@ def send_honeybot_live_message(
     }
     if patronus_key:
         payload["patronus"] = str(patronus_key).strip()
+    if media_path:
+        payload["media"] = str(media_path).strip()
+    if window_spec:
+        payload["window"] = str(window_spec).strip()
     payload_json = json.dumps(payload, indent=2)
     if dry_run:
         print("📡 [DRY RUN] Live break-in payload for Honeybot:")
@@ -1246,7 +1259,14 @@ def send_honeybot_live_message(
         text=True,
     )
     if res.returncode == 0:
-        preview_card = resolved_card.replace("\n", " | ") if resolved_card else f"PATRONUS:{patronus_key}"
+        if resolved_card:
+            preview_card = resolved_card.replace("\n", " | ")
+        elif media_path:
+            preview_card = f"MEDIA:{media_path}"
+        elif window_spec:
+            preview_card = f"WINDOW:{window_spec}"
+        else:
+            preview_card = f"PATRONUS:{patronus_key}"
         print(f"🎙️  Card: [{preview_card}] | Say: {clean_say!r}")
     return res.returncode
 
@@ -2181,6 +2201,18 @@ if __name__ == "__main__":
         help="Optional figurate ASCII art key (e.g. white_rabbit) for --broadcast say.",
     )
     parser.add_argument(
+        "-m", "--media",
+        type=str,
+        default=None,
+        help="Optional image/video path or URL (e.g. /assets/images/slug.jpeg) for --broadcast say.",
+    )
+    parser.add_argument(
+        "-w", "--window",
+        type=str,
+        default=None,
+        help="Optional TUI window spec (e.g. forest.py:30:bimodal) for --broadcast say.",
+    )
+    parser.add_argument(
         "--clip",
         action="store_true",
         help="Read the spoken message from the OS clipboard for --broadcast say.",
@@ -2280,6 +2312,8 @@ if __name__ == "__main__":
                 msg_text,
                 card_label=cli_args.card,
                 patronus_key=cli_args.patronus,
+                media_path=cli_args.media,
+                window_spec=cli_args.window,
                 pre_pause=cli_args.pre,
                 linger=cli_args.linger,
                 dry_run=cli_args.dry_run,
