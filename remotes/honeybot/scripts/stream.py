@@ -1170,7 +1170,7 @@ def perform_show(script):
             # the completion bell rings -- so the TTS doesn't thrash through the deploy.
             if check_standby():
                 narrator.interrupt()  # cut current audio + flush the backlog
-                narrator.say("Receiving updates. This broadcast is coming to an end. To hear the next article, visit YouTube dot com slash M I K E L E V I N slash live")
+                narrator.say("Receiving updates. This broadcast is coming to an end. To hear the next article, visit YouTube dot com slash M I K E L E V I N slash live. To hear the next article, visit YouTube dot com slash M I K E L E V I N slash live. To hear the next article, visit YouTube dot com slash M I K E L E V I N slash live. If you get there too soon you might have to wait a bit and hit refresh to see the new live-stream appear but it will be worth it.")
                 # The outer `duration` here is a generous LAST-RESORT ceiling, not
                 # the thing that's supposed to close this window. The deterministic
                 # close is the pkill below, fired the instant check_for_updates()
