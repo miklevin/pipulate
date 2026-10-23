@@ -26,10 +26,10 @@ sync_installer() {
 }
 if [ "${1:-}" = "--installer" ]; then
   if sync_installer; then
-    echo "✅ Installer synced to npvg.org and qamy.ai (body only; no rebuild)."
+    echo "✅ Installer synced to npvg.org, qamy.ai, and levinix.org (body only; no rebuild)."
     exit 0
   fi
-  echo "❌ Installer sync failed; one or both doors still serve the previous file."
+  echo "❌ Installer sync failed; one or more doors still serve the previous file."
   exit 1
 fi
 

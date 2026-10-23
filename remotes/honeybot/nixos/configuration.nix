@@ -31,9 +31,16 @@
   networking.hostName = "honeybot"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
-  # DNS Overrides: Map public domain to localhost to avoid Hairpin NAT issues
+  # DNS Overrides: Map public domains to localhost to avoid Hairpin NAT issues
   networking.hosts = {
-    "127.0.0.1" = [ "mikelev.in" "www.mikelev.in" ];
+    "127.0.0.1" = [
+      "mikelev.in" ("www." + "mikelev.in")
+      "npvg.org" ("www." + "npvg.org")
+      "qamy.ai" ("www." + "qamy.ai")
+      "levinix.org" ("www." + "levinix.org")
+      "levinix.com" ("www." + "levinix.com")
+      "levinux.com" ("www." + "levinux.com")
+    ];
   };
 
   # Allow Nginx to read files in /home/mike
@@ -357,11 +364,10 @@
     # THE LEVINIX DOOR (2026-10-21): Target 4 in blogs.nix (WORA Nix Flake
     # Magic-Cookie packaging). Combines the curl/wget installer door
     # ($npvg_index stamped to 'levinix') with RFC 9110 Accept: text/markdown
-    # negotiation (index.md) and browser HTML (index.html). Staged HTTP-first
-    # until DNS points at Honeybot.
+    # negotiation (index.md) and browser HTML (index.html).
     virtualHosts."levinix.org" = {
-      forceSSL = false;
-      enableACME = false;
+      forceSSL = true;
+      enableACME = true;
       serverAliases = [ ("www." + "levinix.org") ];
       root = "/home/mike/www/levinix.org";
       extraConfig = ''
@@ -399,13 +405,28 @@
       };
     };
 
+    # THE LEVINIX.COM REDIRECT (2026-10-23): Retires the .com in favor of the
+    # non-commercial .org Commons door while logging every redirect hit to the
+    # unified access.log so traffic scrolls as [levinix.com] on Honeybot's HUD.
+    virtualHosts."levinix.com" = {
+      forceSSL = true;
+      enableACME = true;
+      serverAliases = [ ("www." + "levinix.com") ];
+      extraConfig = ''
+        access_log /var/log/nginx/access.log ai_tracker;
+        access_log /var/log/nginx/levinix.access.log ai_tracker;
+      '';
+      locations."/" = {
+        return = "301 https://levinix.org$request_uri";
+      };
+    };
+
     # THE LEVINUX DECK (2026-10-21): Classic remark.js LPvg slideshow for
     # browsers, RFC 9110 raw Markdown (index.md) for Accept: text/markdown
-    # agents. Staged HTTP-first while DNS points at GitHub Pages; flip
-    # forceSSL and enableACME to true once the A record points to Honeybot.
+    # agents.
     virtualHosts."levinux.com" = {
-      forceSSL = false;
-      enableACME = false;
+      forceSSL = true;
+      enableACME = true;
       serverAliases = [ ("www." + "levinux.com") ];
       root = "/home/mike/www/levinux.com";
       extraConfig = ''
