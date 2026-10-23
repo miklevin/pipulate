@@ -1133,6 +1133,20 @@ Entries are alphabetical, numbers spelled as spoken.
   is Linux and WSL only -- Nix normalizes the userland, not the kernel, and
   macOS has no procfs. Use `ps`/`lsof` there.
   DISCHARGES (corrected 2026-07-31): rung 4 pays the refresh-on-expiry chisel owed since 2026-07-29, but NOT in resolve_token. A resolver that silently re-mints is a resolver whose failures stop being visible, so the debt splits: READ half in mcp.py::_expiry_note (landed, witnessed -- EXPIRED 155871s ago printed to stderr on the live receipt), WRITE half in mcp_warm.py --refresh (landed, gate6 UNWITNESSED). Pedagogy and plumbing pay each other; the sensor and the actuator stay in separate files.
+- **The Copy-If-Absent Delivery** -- *expanded rule; banked 2026-10-23.*
+
+~~~text
+# THE COPY-IF-ABSENT DELIVERY EARMARK (opened 2026-09-01; two hand-run `cp`
+# commands in two consecutive rides, both to the same file). flake.nix's
+# copy_notebook_if_needed stages a file only when the destination is MISSING,
+# so every fix to assets/nbs/imports/ is invisible to every existing install
+# forever. Correct for a notebook the human edits; wrong for imports/*.py,
+# which nobody is supposed to edit. OWED: split the loop -- notebooks stay
+# copy-if-absent, imports/ refresh when the asset is newer -- with a probe
+# proving a deliberately staled working copy is actually replaced, and
+# `exit` then `nix develop` named as the ignition.
+~~~
+
 - **The Cover-Prompt Rule** -- *expanded rule; banked 2026-07-20.*
 
 ~~~text

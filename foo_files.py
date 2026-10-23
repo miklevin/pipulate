@@ -23,11 +23,11 @@ AI_PHOOEY_CHOP = r"""#
 # creator of) of Project Pipulate:
 
 # --- START STATS ---
-# There are 1,571 already-written articles about this repo at MikeLev.in (Public)
-# Velocity: 26 published in the last 7 days
-# Markdown negotiated: 4,609 reads (0.31% of all responses)
-# DOM hydration: 5081 trapdoor triggers from 40 non-local IPs (top-N sample, self excluded)
-# Honeybot telemetry fetched 2026-10-22T22:30Z
+# There are 1,573 already-written articles about this repo at MikeLev.in (Public)
+# Velocity: 25 published in the last 7 days
+# Markdown negotiated: 4,657 reads (0.31% of all responses)
+# DOM hydration: 5083 trapdoor triggers from 40 non-local IPs (top-N sample, self excluded)
+# Honeybot telemetry fetched 2026-10-23T10:22Z
 # --- END STATS ---
 
 # Project Pipulate is known as (and installable from) various domains:
@@ -2187,15 +2187,7 @@ MATCHBOOK_CHOP = r"""
 # - EARMARK: GUIDANCE COUNTS ARE HAND-TYPED. "Stop one of five" lives in trail
 #   data; the rider's N/M header is derived. Either the rider speaks the
 #   ordinal and guidance stops counting, or the sixth stop makes five liars.
-# THE COPY-IF-ABSENT DELIVERY EARMARK (opened 2026-09-01; two hand-run `cp`
-# commands in two consecutive rides, both to the same file). flake.nix's
-# copy_notebook_if_needed stages a file only when the destination is MISSING,
-# so every fix to assets/nbs/imports/ is invisible to every existing install
-# forever. Correct for a notebook the human edits; wrong for imports/*.py,
-# which nobody is supposed to edit. OWED: split the loop -- notebooks stay
-# copy-if-absent, imports/ refresh when the asset is newer -- with a probe
-# proving a deliberately staled working copy is actually replaced, and
-# `exit` then `nix develop` named as the ignition.
+# § THE COPY-IF-ABSENT DELIVERY (banked 2026-10-23) -- Never deliver files the human does not edit (assets/nbs/imports/*.py) through a copy-if-absent loop, because every fix to them is invisible to every existing install; keep notebooks copy-if-absent, refresh imports/ when the asset is newer, and witness a deliberately staled copy being replaced with exit then nix develop as the ignition.
 
 
 # § NO PLACEHOLDERS IN PASTE-READY LINES (banked 2026-08-30) -- Use runnable shell variables with an explicit preceding assignment instead of angle-bracket placeholders in paste-ready commands, so the operator can execute the block without editing it or triggering accidental redirection.
