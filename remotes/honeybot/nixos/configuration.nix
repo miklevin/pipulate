@@ -483,6 +483,10 @@
       locations."= /api/telemetry/js_confirm.gif" = {
         extraConfig = "empty_gif;";
       };
+      # THE 2ND BRAIN ARCHIVE: durable alias outside _site so jekyll build never wipes it
+      locations."= /brain.zip" = {
+        extraConfig = "alias /home/mike/www/qamy.ai/brain.zip;";
+      };
     };
   };
 

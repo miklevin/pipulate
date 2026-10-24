@@ -294,7 +294,7 @@
               prev_mtime=$(stat -c %Y "$zip_file" 2>/dev/null || stat -f %m "$zip_file" 2>/dev/null || echo 0)
             fi
             echo "🧠 Checking 2nd Brain corpus at $brain_url ..." >&2
-            curl_args=(-fSL --connect-timeout 10)
+            curl_args=(-fSLR --connect-timeout 10)
             if [ -f "$zip_file" ]; then
               curl_args+=(-z "$zip_file")
             fi

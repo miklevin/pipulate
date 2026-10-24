@@ -58,6 +58,9 @@ echo "🚀 Syncing qamy.ai door (npvg.org's shape, its own tree)..."
 ssh $TARGET "mkdir -p ~/www/qamy.ai"
 rsync -av remotes/honeybot/www/qamy.ai/ $TARGET:~/www/qamy.ai/
 sync_installer
+if [ -x ".venv/bin/python" ]; then
+  .venv/bin/python -c "import sys, pathlib; sys.path.insert(0, 'scripts/articles'); import common, publishizer; t = common.load_targets().get('1', {}); p = pathlib.Path(t.get('path', '~/repos/trimnoir/_posts')).expanduser(); publishizer.build_brain_archive('1', p)" || true
+fi
 if [ -f "$HOME/.cache/pipulate/brain.zip" ]; then
   echo "🧠 Syncing 2nd Brain archive (brain.zip) to qamy.ai and mikelev.in..."
   rsync -av "$HOME/.cache/pipulate/brain.zip" $TARGET:~/www/qamy.ai/brain.zip
