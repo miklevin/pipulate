@@ -1237,17 +1237,46 @@ def send_honeybot_live_message(
         resolved_card = "" if has_visual_override else "LIVE\nFROM MIKE"
     else:
         resolved_card = str(card_label).replace("\\n", "\n")
+    resolved_media = str(media_path).strip() if media_path else ""
+    media_dur = None
+    if resolved_media and ":" in resolved_media and not resolved_media.startswith(("http://", "https://", "file://")):
+        m_head, m_tail = resolved_media.rsplit(":", 1)
+        try:
+            media_dur = float(m_tail.strip())
+            resolved_media = m_head.strip()
+        except ValueError:
+            pass
+    local_media_file = None
+    if resolved_media and not resolved_media.startswith(("http://", "https://", "file://")):
+        cand = Path(resolved_media).expanduser()
+        if cand.is_file():
+            local_media_file = cand.resolve()
+            safe_fname = re.sub(r"[^A-Za-z0-9._-]", "_", local_media_file.name)
+            resolved_media = f"/tmp/honeybot_media/{safe_fname}"
+    if resolved_media and media_dur is not None:
+        resolved_media = f"{resolved_media}:{media_dur:g}"
+    eff_pre_pause = float(pre_pause)
+    eff_linger = float(linger)
+    if not clean_say and has_visual_override:
+        if eff_pre_pause == 3.0:
+            eff_pre_pause = 0.5
+        if media_dur is not None:
+            eff_linger = max(eff_linger, float(media_dur))
+        elif eff_linger == 2.5:
+            eff_linger = 8.0
     payload = {
         "card": resolved_card,
         "say": clean_say,
-        "pre_pause": float(pre_pause),
-        "linger": float(linger),
+        "pre_pause": eff_pre_pause,
+        "linger": eff_linger,
         "sent_at": int(time.time()),
     }
     if patronus_key:
         payload["patronus"] = str(patronus_key).strip()
-    if media_path:
-        payload["media"] = str(media_path).strip()
+    if resolved_media:
+        payload["media"] = resolved_media
+    if local_media_file is not None:
+        payload["staged_from"] = str(local_media_file)
     if window_spec:
         payload["window"] = str(window_spec).strip()
     payload_json = json.dumps(payload, indent=2)
@@ -1255,6 +1284,21 @@ def send_honeybot_live_message(
         print("📡 [DRY RUN] Live break-in payload for Honeybot:")
         print(payload_json)
         return 0
+    if local_media_file is not None:
+        remote_dest = resolved_media.rsplit(":", 1)[0] if media_dur is not None else resolved_media
+        subprocess.run(
+            ["ssh", HONEYBOT_SSH_HOST, "mkdir", "-p", "/tmp/honeybot_media"],
+            check=False,
+        )
+        scp_res = subprocess.run(
+            ["scp", "-q", str(local_media_file), f"{HONEYBOT_SSH_HOST}:{remote_dest}"],
+            check=False,
+        )
+        if scp_res.returncode == 0:
+            print(f"🖼️  Staged local media to Honeybot: {local_media_file.name} -> {remote_dest}")
+        else:
+            print(f"⚠️ Failed to stage local media {local_media_file} to Honeybot (exit {scp_res.returncode})")
+            return scp_res.returncode
     payload_b64 = base64.b64encode(payload_json.encode("utf-8")).decode("ascii")
     res = subprocess.run(
         ["ssh", HONEYBOT_SSH_HOST, "python3", "-", payload_b64],

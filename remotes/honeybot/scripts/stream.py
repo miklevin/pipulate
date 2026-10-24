@@ -557,6 +557,51 @@ def stop_updating_music(proc):
 MEDIA_OVERLAY_MARKER = "honeybot_media_overlay"
 
 
+def _read_image_dimensions(path):
+    """Read (width, height) from PNG/GIF/JPEG header bytes using stdlib only."""
+    import struct
+    try:
+        with open(path, "rb") as f:
+            head = f.read(32)
+            if len(head) >= 24 and head.startswith(b"\x89PNG\r\n\x1a\n") and head[12:16] == b"IHDR":
+                w, h = struct.unpack(">II", head[16:24])
+                if w > 0 and h > 0:
+                    return int(w), int(h)
+            if len(head) >= 10 and head[:6] in (b"GIF87a", b"GIF89a"):
+                w, h = struct.unpack("<HH", head[6:10])
+                if w > 0 and h > 0:
+                    return int(w), int(h)
+            if head.startswith(b"\xff\xd8"):
+                f.seek(2)
+                while True:
+                    marker = f.read(2)
+                    if len(marker) < 2 or marker[0] != 0xFF:
+                        break
+                    while marker[1] == 0xFF:
+                        b = f.read(1)
+                        if not b:
+                            break
+                        marker = bytes([0xFF, b[0]])
+                    mtype = marker[1]
+                    if mtype in (0xD8, 0xD9):
+                        continue
+                    len_bytes = f.read(2)
+                    if len(len_bytes) < 2:
+                        break
+                    seg_len = struct.unpack(">H", len_bytes)[0]
+                    if mtype in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                        sof = f.read(5)
+                        if len(sof) == 5:
+                            h, w = struct.unpack(">HH", sof[1:5])
+                            if w > 0 and h > 0:
+                                return int(w), int(h)
+                        break
+                    f.seek(max(0, seg_len - 2), 1)
+    except Exception:
+        pass
+    return 1440, 810
+
+
 def _resolve_honeybot_media_target(raw_target):
     """Resolve a local path, site-relative '/assets/...' path, or URL on Honeybot."""
     s = str(raw_target or "").strip()
@@ -624,17 +669,32 @@ def conjure_media(media_spec, duration=15.0, mute=False):
             proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             proc.wait(timeout=duration + 2.0)
         elif not is_video and shutil.which("feh") and not target.startswith(("http://", "https://")):
+            img_w, img_h = _read_image_dimensions(target) if os.path.isfile(target) else (1440, 810)
+            max_w, max_h = 1440, 840
+            scale = min(max_w / max(1, img_w), max_h / max(1, img_h))
+            win_w = max(256, int(round(img_w * scale)))
+            win_h = max(256, int(round(img_h * scale)))
+            pos_x = max(0, (1920 - win_w) // 2)
+            pos_y = max(0, (1080 - win_h) // 2)
             cmd = [
                 "feh",
                 "--title", MEDIA_OVERLAY_MARKER,
                 "--borderless",
+                "--image-bg", "black",
                 "--auto-zoom",
-                "--geometry", "1440x810+240+135",
+                "--scale-down",
+                "--geometry", f"{win_w}x{win_h}+{pos_x}+{pos_y}",
                 target,
             ]
             proc = subprocess.Popen(cmd, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            time.sleep(0.4)
+            time.sleep(0.35)
+            subprocess.run(
+                ["wmctrl", "-r", MEDIA_OVERLAY_MARKER, "-e", f"0,{pos_x},{pos_y},{win_w},{win_h}"],
+                env=env,
+                check=False,
+            )
             subprocess.run(["wmctrl", "-r", MEDIA_OVERLAY_MARKER, "-b", "add,above"], env=env, check=False)
+            subprocess.run(["wmctrl", "-a", MEDIA_OVERLAY_MARKER], env=env, check=False)
             proc.wait(timeout=duration)
         elif shutil.which("mpv"):
             cmd = [
