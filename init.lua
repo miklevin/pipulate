@@ -339,8 +339,24 @@ function correct_misspelling()
 end
 
 function toggle_line_numbers()
-    vim.opt.relativenumber = not vim.opt.relativenumber._value
-    vim.opt.number = not vim.opt.number._value
+    local next_state = not vim.opt.number:get()
+    vim.opt.relativenumber = next_state
+    vim.opt.number = next_state
+    if next_state then
+        vim.notify("Line numbers enabled", vim.log.levels.INFO)
+    else
+        vim.notify("Line numbers disabled", vim.log.levels.INFO)
+    end
+end
+
+function toggle_word_wrap()
+    local next_state = not vim.opt.wrap:get()
+    vim.opt.wrap = next_state
+    if next_state then
+        vim.notify("Word wrap enabled (soft wrap)", vim.log.levels.INFO)
+    else
+        vim.notify("Word wrap disabled (nowrap)", vim.log.levels.INFO)
+    end
 end
 
 function toggle_text_width()
@@ -1032,12 +1048,15 @@ map('n', '<F2>', '<cmd>lua reload_config()<CR>', opts)
 -- F3: Toggle spell check on/off
 map('n', '<F3>', '<cmd>lua toggle_spell_check()<CR>', opts)
 
--- F4: Toggle line numbers on/off (both normal and relative)
-map('n', '<F4>', '<cmd>lua toggle_line_numbers()<CR>', opts)
+-- F4: Toggle soft word-wrap on/off (visual wrap without inserting newlines)
+map('n', '<F4>', '<cmd>lua toggle_word_wrap()<CR>', opts)
 
--- F5 / <leader>t: Toggle textwidth 0 <-> 80 (the Margin Release)
+-- F5 / <leader>t: Toggle textwidth 0 <-> 80 (the Margin Release / hard wrap)
 map('n', '<F5>', '<cmd>lua toggle_text_width()<CR>', opts)
 map('n', '<leader>t', '<cmd>lua toggle_text_width()<CR>', opts)
+
+-- F6: Toggle line numbers/ruler on/off (both normal and relative)
+map('n', '<F6>', '<cmd>lua toggle_line_numbers()<CR>', opts)
 
 -- Leader key mappings
 -- Text Processing
@@ -1099,6 +1118,11 @@ print("init.lua loaded successfully!")
 -- <leader>d - Jump to next single-dollar MathJax candidate (skips code fences, double-dollar, and currency)
 -- <leader>d (visual) - Convert single-dollar MathJax to double-dollar in selection (no double-doubling)
 -- <leader>t - Toggle textwidth 0 <-> 80 (the Margin Release; also F5)
+-- <F2> - Reload init.lua configuration
+-- <F3> - Toggle spell check on/off
+-- <F4> - Toggle soft word-wrap on/off (wrap <-> nowrap)
+-- <F5> - Toggle hard textwidth on/off (tw=80 <-> tw=0; also <leader>t)
+-- <F6> - Toggle line numbers/ruler on/off (number & relativenumber)
 
 -- Dialogue & Sandworm Ride Controls
 -- <leader>x - Mount sandworm (stage full AI-Edit Method saddle at cursor)
