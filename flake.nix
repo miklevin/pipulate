@@ -878,6 +878,7 @@
           postscCommand                # posts plus holographic shards (the c-twin)
           postsbCommand                # posts full markdown bodies (the b-twin of posts/postsc)
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
+          brainCommand                 # 2nd Brain downloader/updater & spine (identical to book)
           latestCommand                # Full markdown body of newest article(s) for ! latest
           markovCommand                # Markov transition matrix + river streaming ML lens for ! markov
           swatCommand                  # 7-at-one-swat JSON dry-run lens for ! swat
@@ -2314,8 +2315,12 @@ pm = os.path.join(root, 'prompt.md')
 if os.path.isfile(pm): env += os.path.getsize(pm)
 try:
     cfg = os.path.expanduser('~/.config/pipulate/blogs.json')
-    posts = os.path.expanduser(json.load(open(cfg))['1']['path']) if os.path.exists(cfg) else os.path.expanduser('~/repos/trimnoir/_posts')
-except: posts = os.path.expanduser('~/repos/trimnoir/_posts')
+    default_p = os.path.expanduser(os.environ.get('PIPULATE_DEFAULT_POSTS_DIR', '~/repos/trimnoir/_posts'))
+    brain_p = os.path.expanduser(os.environ.get('PIPULATE_BRAIN_DIR', '~/.local/share/pipulate/brain/_posts'))
+    fallback_p = default_p if os.path.isdir(default_p) else (brain_p if os.path.isdir(brain_p) else default_p)
+    posts = os.path.expanduser(json.load(open(cfg))['1']['path']) if os.path.exists(cfg) else fallback_p
+    if not os.path.isdir(posts) and os.path.isdir(brain_p): posts = brain_p
+except: posts = os.path.expanduser(os.environ.get('PIPULATE_DEFAULT_POSTS_DIR', '~/repos/trimnoir/_posts'))
 budget = $max_bytes - env
 files = sorted([f for f in os.listdir(posts) if f.endswith('.md') and f[:4].isdigit()], reverse=True)
 total = 0; n = 0

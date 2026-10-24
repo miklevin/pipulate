@@ -38,6 +38,7 @@ EXIT_SHELL = 10
 SHORT_WORDS = (
     ("menu", "print this list again (useful once it scrolls away)."),
     ("walk", "take guided tour of context compiler (recommended)."),
+    ("brain", "download or update the 2nd Brain article corpus."),
     ("talk", "turn text-to-speech narration on or off."),
     ("connect", "put mcp, jira, email, docs, etc. into your contexts."),
     ("context", "edit the list of files an AI will read (after the walk)."),
@@ -50,6 +51,8 @@ SHORT_WORDS = (
 ALL_WORDS = (
     ("menu", "print the shorter list."),
     ("walk", "take guided tour of context compiler (recommended)."),
+    ("brain", "download or update the 2nd Brain article corpus."),
+    ("book", "list or update the 2nd Brain book spine (newest first)."),
     ("talk", "turn text-to-speech narration on or off."),
     ("connect", "put mcp, jira, email, docs, etc. into your contexts."),
     ("context", "edit the list of files an AI will read (after the walk)."),
