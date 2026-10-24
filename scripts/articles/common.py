@@ -19,10 +19,27 @@ LAST_PUBLISHED_FILE = CONFIG_DIR / "last_published.json"
 YT_VIEWER_ALERT_MIN = int(os.environ.get("PIPULATE_YT_VIEWER_MIN", "3"))
 YT_VIEWER_ALERT_COOLDOWN = int(os.environ.get("PIPULATE_YT_VIEWER_COOLDOWN", "300"))  # Seconds between any two viewer alerts
 
+DEFAULT_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_DEFAULT_POSTS_DIR", Path.home() / "repos" / "trimnoir" / "_posts")
+).expanduser()
+BRAIN_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_BRAIN_DIR", Path.home() / ".local" / "share" / "pipulate" / "brain" / "_posts")
+).expanduser()
+
+
+def resolve_default_posts_dir() -> str:
+    """Return primary _posts checkout if present, else hydrated 2nd Brain _posts."""
+    if DEFAULT_POSTS_DIR.is_dir():
+        return str(DEFAULT_POSTS_DIR)
+    if BRAIN_POSTS_DIR.is_dir():
+        return str(BRAIN_POSTS_DIR)
+    return str(DEFAULT_POSTS_DIR)
+
+
 DEFAULT_TARGETS = {
     "1": {
-        "name": "Trimnoir (Personal Journal)",
-        "path": str(Path.home() / "repos" / "trimnoir" / "_posts"),
+        "name": "MikeLev.in (2nd Brain)",
+        "path": resolve_default_posts_dir(),
         "base_url": "https://mikelev.in",
         "permalink_prefix": "futureproof"
     }
@@ -33,10 +50,23 @@ def load_targets():
     if TARGETS_FILE.exists():
         try:
             with open(TARGETS_FILE, 'r') as f:
-                return json.load(f)
+                targets = json.load(f)
+            t1 = targets.get("1")
+            if isinstance(t1, dict):
+                p1 = Path(t1.get("path", "")).expanduser()
+                if not p1.is_dir() and BRAIN_POSTS_DIR.is_dir() and "shadow-publishing" not in str(p1):
+                    t1["path"] = str(BRAIN_POSTS_DIR)
+            return targets
         except json.JSONDecodeError:
             print(f"⚠️ Warning: {TARGETS_FILE} is corrupt. Using defaults.")
-    return DEFAULT_TARGETS
+    return {
+        "1": {
+            "name": "MikeLev.in (2nd Brain)",
+            "path": resolve_default_posts_dir(),
+            "base_url": "https://mikelev.in",
+            "permalink_prefix": "futureproof",
+        }
+    }
 
 
 def canonical_target(spec):

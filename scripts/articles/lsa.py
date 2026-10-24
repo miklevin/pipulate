@@ -52,11 +52,29 @@ except ImportError:
 
 CONFIG_DIR = Path.home() / ".config" / "pipulate"
 TARGETS_FILE = Path(os.environ.get("PIPULATE_BLOGS_CONFIG", CONFIG_DIR / "blogs.json")).expanduser()
+DEFAULT_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_DEFAULT_POSTS_DIR", Path.home() / "repos" / "trimnoir" / "_posts")
+).expanduser()
+BRAIN_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_BRAIN_DIR", Path.home() / ".local" / "share" / "pipulate" / "brain" / "_posts")
+).expanduser()
+
+
+def resolve_default_posts_dir() -> str:
+    """Return primary _posts checkout if present, else hydrated 2nd Brain _posts."""
+    if DEFAULT_POSTS_DIR.is_dir():
+        return str(DEFAULT_POSTS_DIR)
+    if BRAIN_POSTS_DIR.is_dir():
+        return str(BRAIN_POSTS_DIR)
+    return str(DEFAULT_POSTS_DIR)
+
 
 DEFAULT_TARGETS = {
     "1": {
-        "name": "Local Project (Default)",
-        "path": "./_posts"
+        "name": "MikeLev.in (2nd Brain)",
+        "path": resolve_default_posts_dir(),
+        "base_url": "https://mikelev.in",
+        "permalink_prefix": "futureproof",
     }
 }
 
@@ -150,10 +168,25 @@ def load_targets():
     if TARGETS_FILE.exists():
         try:
             with open(TARGETS_FILE, 'r') as f:
-                return json.load(f)
+                targets = json.load(f)
+            t1 = targets.get("1")
+            if isinstance(t1, dict):
+                p1 = Path(t1.get("path", "")).expanduser()
+                is_empty_shadow = "shadow-publishing" in str(p1) and (not p1.is_dir() or not any(p1.glob("*.md")))
+                if (not p1.is_dir() or is_empty_shadow) and BRAIN_POSTS_DIR.is_dir():
+                    t1["path"] = str(BRAIN_POSTS_DIR)
+                    t1.setdefault("name", "MikeLev.in (2nd Brain)")
+            return targets
         except json.JSONDecodeError:
             print(f"⚠️ Warning: {TARGETS_FILE} is corrupt. Using defaults.", file=sys.stderr)
-    return DEFAULT_TARGETS
+    return {
+        "1": {
+            "name": "MikeLev.in (2nd Brain)",
+            "path": resolve_default_posts_dir(),
+            "base_url": "https://mikelev.in",
+            "permalink_prefix": "futureproof",
+        }
+    }
 
 def parse_target_spec(spec, targets):
     """Resolve one -t spec into an ordered list of blogs.json keys.
@@ -508,6 +541,8 @@ def main():
         blog_dir = Path(targets[key]['path']).expanduser().resolve()
         if not blog_dir.is_dir():
             print(f"❌ Directory not found: {blog_dir} (target {key} skipped)", file=sys.stderr)
+            if key == "1":
+                print("💡 Tip: Type 'brain' (or 'book --sync') to download the 2nd Brain article corpus.", file=sys.stderr)
             continue
         target_dirs.append(blog_dir)
         dir_to_key[str(blog_dir)] = key

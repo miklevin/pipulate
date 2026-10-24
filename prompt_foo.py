@@ -45,11 +45,26 @@ except ImportError:
 
 CONFIG_DIR = Path.home() / ".config" / "pipulate"
 TARGETS_FILE = Path(os.environ.get("PIPULATE_BLOGS_CONFIG", CONFIG_DIR / "blogs.json")).expanduser()
+DEFAULT_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_DEFAULT_POSTS_DIR", Path.home() / "repos" / "trimnoir" / "_posts")
+).expanduser()
+BRAIN_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_BRAIN_DIR", Path.home() / ".local" / "share" / "pipulate" / "brain" / "_posts")
+).expanduser()
+
+
+def _resolve_default_posts_dir() -> str:
+    if DEFAULT_POSTS_DIR.is_dir():
+        return str(DEFAULT_POSTS_DIR)
+    if BRAIN_POSTS_DIR.is_dir():
+        return str(BRAIN_POSTS_DIR)
+    return str(DEFAULT_POSTS_DIR)
+
 
 DEFAULT_TARGETS = {
     "1": {
-        "name": "Local Project (Default)",
-        "path": str(Path.home() / "repos" / "trimnoir" / "_posts")  # ~/repos convention
+        "name": "MikeLev.in (2nd Brain)",
+        "path": _resolve_default_posts_dir()
     }
 }
 
@@ -138,7 +153,7 @@ REPO_ROOT = find_repo_root(os.path.dirname(__file__))
 
 CONFIG = {
     "PROJECT_NAME": "pipulate",
-    "POSTS_DIRECTORY": str(Path.home() / "repos" / "trimnoir" / "_posts")
+    "POSTS_DIRECTORY": _resolve_default_posts_dir()
 }
 
 # ============================================================================
@@ -2429,7 +2444,7 @@ def update_stats_in_place():
             return
         blog_name = target.get("name", "the primary blog")
         posts_dir = os.path.expanduser(target.get("path", ""))
-        if not os.path.isdir(posts_dir):
+        if not os.path.isdir(posts_dir) or os.path.abspath(posts_dir) != os.path.abspath(str(DEFAULT_POSTS_DIR)):
             return
         posts = [
             f for f in os.listdir(posts_dir)

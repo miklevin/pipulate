@@ -354,6 +354,54 @@ def sync_observatory_metrics(target_key, target_path, verbose=False):
         )
     print(f"🔭 AI Observatory metrics synced: {md_count_fmt} RFC 9110 Markdown reads ({md_pct_s}%), {hyd_trig_fmt} JS trapdoor triggers ({fetched_at}).")
 
+
+BRAIN_CACHE_DIR = Path.home() / ".cache" / "pipulate"
+BRAIN_ZIP_PATH = BRAIN_CACHE_DIR / "brain.zip"
+BRAIN_META_PATH = BRAIN_CACHE_DIR / "brain.meta.json"
+_TRACER_DYE_RE = re.compile(r"\?src=(?:llms\.txt|a\+href|link\+rel|content_neg)\b")
+
+
+def build_brain_archive(target_key, target_path, verbose=False):
+    """Package dated _posts/*.md (tracer-dye scrubbed) + _posts/_context/*.json into ~/.cache/pipulate/brain.zip."""
+    if str(target_key) != "1" or not target_path.is_dir():
+        return None
+    import json
+    import zipfile
+    mds = sorted(p for p in target_path.glob("*.md") if p.name[:4].isdigit())
+    ctx_dir = target_path / "_context"
+    shards = sorted(p for p in ctx_dir.glob("*.json") if p.name[:4].isdigit()) if ctx_dir.is_dir() else []
+    if not mds:
+        return None
+    max_mtime = max(
+        max((p.stat().st_mtime_ns for p in mds), default=0),
+        max((p.stat().st_mtime_ns for p in shards), default=0),
+    )
+    total_bytes = sum(p.stat().st_size for p in mds) + sum(p.stat().st_size for p in shards)
+    sig = {"md_count": len(mds), "shard_count": len(shards), "max_mtime_ns": max_mtime, "total_bytes": total_bytes}
+    if BRAIN_ZIP_PATH.is_file() and BRAIN_META_PATH.is_file():
+        try:
+            if json.loads(BRAIN_META_PATH.read_text(encoding="utf-8")) == sig:
+                if verbose:
+                    print(f"✅ 2nd Brain archive already current: {BRAIN_ZIP_PATH}")
+                return BRAIN_ZIP_PATH
+        except Exception:
+            pass
+    BRAIN_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    tmp_zip = BRAIN_ZIP_PATH.with_suffix(".zip.tmp")
+    with zipfile.ZipFile(tmp_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for md in mds:
+            raw_text = md.read_text(encoding="utf-8", errors="replace")
+            clean_text = _TRACER_DYE_RE.sub("", raw_text)
+            zf.writestr(f"_posts/{md.name}", clean_text.encode("utf-8"))
+        for sh in shards:
+            zf.write(sh, arcname=f"_posts/_context/{sh.name}")
+    tmp_zip.replace(BRAIN_ZIP_PATH)
+    BRAIN_META_PATH.write_text(json.dumps(sig, indent=2) + "\n", encoding="utf-8")
+    mb = BRAIN_ZIP_PATH.stat().st_size / (1024 * 1024)
+    print(f"🧠 Built 2nd Brain archive: {BRAIN_ZIP_PATH} ({len(mds):,} posts, {len(shards):,} shards, {mb:.1f} MB)")
+    return BRAIN_ZIP_PATH
+
+
 def main():
     parser = argparse.ArgumentParser(description="Update all Pipulate graphs")
     common.add_standard_arguments(parser)
@@ -405,8 +453,9 @@ def main():
     for script in pipeline_scripts:
         run_step(script, target_key, extra_args, verbose=args.verbose)
     
-    # 3. Sync Data
+    # 3. Sync Data & Build 2nd Brain Zip Archive
     sync_data_to_jekyll(target_path, since=total_start, verbose=args.verbose)
+    build_brain_archive(target_key, target_path, verbose=args.verbose)
         
     total_duration = time.time() - total_start
     print(f"\n✨ All steps completed successfully in {total_duration:.2f}s.")

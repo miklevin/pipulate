@@ -32,7 +32,12 @@ CONFIG_DIR = Path.home() / ".config" / "pipulate"
 TARGETS_FILE = Path(
     os.environ.get("PIPULATE_BLOGS_CONFIG", CONFIG_DIR / "blogs.json")
 ).expanduser()
-DEFAULT_POSTS_DIR = Path.home() / "repos" / "trimnoir" / "_posts"
+DEFAULT_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_DEFAULT_POSTS_DIR", Path.home() / "repos" / "trimnoir" / "_posts")
+).expanduser()
+BRAIN_POSTS_DIR = Path(
+    os.environ.get("PIPULATE_BRAIN_DIR", Path.home() / ".local" / "share" / "pipulate" / "brain" / "_posts")
+).expanduser()
 _DATED_STEM_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})-(.+)$")
 _FLOAT_TOKEN_RE = re.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?$")
 
@@ -43,12 +48,22 @@ def _resolve_posts_dir(target_spec: str) -> tuple[str, Path]:
             targets = json.loads(TARGETS_FILE.read_text(encoding="utf-8"))
             if target_spec in targets:
                 cfg = targets[target_spec]
-                return cfg.get("name", target_spec), Path(cfg["path"]).expanduser()
+                p = Path(cfg["path"]).expanduser()
+                if target_spec == "1" and (not (p / "_context").is_dir()) and (BRAIN_POSTS_DIR / "_context").is_dir():
+                    return "MikeLev.in (2nd Brain)", BRAIN_POSTS_DIR
+                return cfg.get("name", target_spec), p
             for k, cfg in targets.items():
                 if str(cfg.get("alias", "")).lower() == target_spec.lower():
-                    return cfg.get("name", k), Path(cfg["path"]).expanduser()
+                    p = Path(cfg["path"]).expanduser()
+                    if k == "1" and (not (p / "_context").is_dir()) and (BRAIN_POSTS_DIR / "_context").is_dir():
+                        return "MikeLev.in (2nd Brain)", BRAIN_POSTS_DIR
+                    return cfg.get("name", k), p
         except Exception:
             pass
+    if DEFAULT_POSTS_DIR.is_dir():
+        return "MikeLev.in (Default)", DEFAULT_POSTS_DIR
+    if BRAIN_POSTS_DIR.is_dir():
+        return "MikeLev.in (2nd Brain)", BRAIN_POSTS_DIR
     return "MikeLev.in (Default)", DEFAULT_POSTS_DIR
 
 
