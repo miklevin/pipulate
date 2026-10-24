@@ -250,12 +250,74 @@
           exec ${postsCommand}/bin/posts --shards "$@"
         '';
 
-        # THE `book` COMMAND: Emits the entire dated-slug spine (newest first)
-        # for child shells behind `! book` in context.txt and interactive prompts alike.
-        bookCommand = pkgs.writeShellScriptBin "book" ''
+        # THE `book` AND `brain` COMMANDS: Identical 2nd-Brain spine & corpus
+        # hydrator. On Prime (where defaultPostsDir exists), streams the local
+        # spine immediately in ~0.4s. On any stranger's machine (or when --sync
+        # is passed), fetches/updates brain.zip from Honeybot into
+        # ~/.local/share/pipulate/brain/_posts using curl -z conditional HTTP
+        # caching, extracts with stdlib zipfile, and streams the book spine.
+        brainSyncAndBookScript = ''
           set -euo pipefail
-          exec ${postsCommand}/bin/posts --reverse --fmt dated-slugs "$@"
+          root="''${PIPULATE_ROOT:-$PWD}"
+          python_bin="$root/.venv/bin/python"
+          if [ ! -x "$python_bin" ]; then
+            echo "brain: missing $python_bin; enter the Pipulate Nix shell first." >&2
+            exit 1
+          fi
+          primary_dir="''${PIPULATE_DEFAULT_POSTS_DIR:-${defaultPostsDir}}"
+          brain_dir="''${PIPULATE_BRAIN_DIR:-${hydratedBrainDir}}"
+          brain_url="''${PIPULATE_BRAIN_URL:-${defaultBrainUrl}}"
+          force_sync=0
+          forward_args=()
+          for arg in "$@"; do
+            case "$arg" in
+              --sync|--update) force_sync=1 ;;
+              *) forward_args+=("$arg") ;;
+            esac
+          done
+          need_sync=0
+          if [ "$force_sync" -eq 1 ]; then
+            need_sync=1
+          elif [ ! -d "$primary_dir" ]; then
+            if [ ! -d "$brain_dir" ] || [ -z "$(ls -A "$brain_dir"/*.md 2>/dev/null || true)" ]; then
+              need_sync=1
+            elif [ -t 1 ] && [ "''${#forward_args[@]}" -eq 0 ]; then
+              need_sync=1
+            fi
+          fi
+          if [ "$need_sync" -eq 1 ]; then
+            brain_root="$(dirname "$brain_dir")"
+            zip_file="$brain_root/brain.zip"
+            mkdir -p "$brain_root"
+            prev_mtime=0
+            if [ -f "$zip_file" ]; then
+              prev_mtime=$(stat -c %Y "$zip_file" 2>/dev/null || stat -f %m "$zip_file" 2>/dev/null || echo 0)
+            fi
+            echo "🧠 Checking 2nd Brain corpus at $brain_url ..." >&2
+            curl_args=(-fSL --connect-timeout 10)
+            if [ -f "$zip_file" ]; then
+              curl_args+=(-z "$zip_file")
+            fi
+            if ${pkgs.curl}/bin/curl "''${curl_args[@]}" -o "$zip_file" "$brain_url"; then
+              new_mtime=$(stat -c %Y "$zip_file" 2>/dev/null || stat -f %m "$zip_file" 2>/dev/null || echo 1)
+              if [ "$new_mtime" != "$prev_mtime" ] || [ ! -d "$brain_dir" ]; then
+                "$python_bin" -m zipfile -e "$zip_file" "$brain_root"
+                echo "✅ 2nd Brain hydrated in $brain_dir (try: rgx dystopia eunuch | postsc 10 | markov)" >&2
+              else
+                echo "✅ 2nd Brain already up to date ($brain_dir)." >&2
+              fi
+            else
+              echo "⚠️ Could not fetch $brain_url (offline or not yet published)." >&2
+              if [ ! -d "$brain_dir" ] && [ ! -d "$primary_dir" ]; then
+                exit 1
+              fi
+            fi
+          fi
+          exec ${postsCommand}/bin/posts --reverse --fmt dated-slugs "''${forward_args[@]}"
         '';
+
+        bookCommand = pkgs.writeShellScriptBin "book" brainSyncAndBookScript;
+        brainCommand = pkgs.writeShellScriptBin "brain" brainSyncAndBookScript;
 
         # THE `latest` AND `postsb` COMMANDS: Emit the full markdown body of
         # the newest article (or N newest with `latest N`, or a Python slice
@@ -883,7 +945,6 @@
           postsbCommand                # posts full markdown bodies (the b-twin of posts/postsc)
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
           brainCommand                 # 2nd Brain downloader/updater & spine (identical to book)
-          latestCommand                # Full markdown body of newest article(s) for ! latest
           latestCommand                # Full markdown body of newest article(s) for ! latest
           markovCommand                # Markov transition matrix + river streaming ML lens for ! markov
           swatCommand                  # 7-at-one-swat JSON dry-run lens for ! swat
@@ -1540,6 +1601,9 @@ runScript = pkgs.writeShellScriptBin "run-script" ''
         # Miscellaneous setup logic for aliases, CUDA, SSH, etc.
         miscSetupLogic = ''
           export PIPULATE_ROOT="$(pwd)" # Capture the absolute path to the project root
+          export PIPULATE_DEFAULT_POSTS_DIR="''${PIPULATE_DEFAULT_POSTS_DIR:-${defaultPostsDir}}"
+          export PIPULATE_BRAIN_DIR="''${PIPULATE_BRAIN_DIR:-${hydratedBrainDir}}"
+          export PIPULATE_BRAIN_URL="''${PIPULATE_BRAIN_URL:-${defaultBrainUrl}}"
           # THE VAULT: where `warm` parks paste-kind secrets -- 0600, beside the
           # wallet, outside the repo, outside git. Sourced FIRST so the per-install
           # repo .env below still wins: global vault, then local specifics.

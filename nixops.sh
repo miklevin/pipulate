@@ -58,6 +58,11 @@ echo "🚀 Syncing qamy.ai door (npvg.org's shape, its own tree)..."
 ssh $TARGET "mkdir -p ~/www/qamy.ai"
 rsync -av remotes/honeybot/www/qamy.ai/ $TARGET:~/www/qamy.ai/
 sync_installer
+if [ -f "$HOME/.cache/pipulate/brain.zip" ]; then
+  echo "🧠 Syncing 2nd Brain archive (brain.zip) to qamy.ai and mikelev.in..."
+  rsync -av "$HOME/.cache/pipulate/brain.zip" $TARGET:~/www/qamy.ai/brain.zip
+  ssh $TARGET "cp -lf ~/www/qamy.ai/brain.zip ~/www/mikelev.in/_site/brain.zip 2>/dev/null || cp -f ~/www/qamy.ai/brain.zip ~/www/mikelev.in/_site/brain.zip"
+fi
 
 echo "🚀 Syncing levinux.com deck (remark.js HTML + RFC 9110 index.md)..."
 LEVINUX_CACHE="$HOME/.cache/pipulate/levinux-assets"
