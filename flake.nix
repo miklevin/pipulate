@@ -116,9 +116,13 @@
         # Define a static workspace name to prevent random file generation
         jupyterWorkspaceName = "pipulate-main";
 
- 		# Define the default notebook for JupyterLab to open on startup
- 		jupyterStartupNotebook = "Workshop/personal/Notebooks/Onboarding.ipynb";
+		# Define the default notebook for JupyterLab to open on startup
+		jupyterStartupNotebook = "Workshop/personal/Notebooks/Onboarding.ipynb";
 
+        # --- 🧠 2ND BRAIN CORPUS CONFIGURATION ---
+        defaultPostsDir = "$HOME/repos/trimnoir/_posts";
+        hydratedBrainDir = "$HOME/.local/share/pipulate/brain/_posts";
+        defaultBrainUrl = "https://mikelev.in/brain.zip";
         # --- 🌐 BROWSER TAB CONFIGURATION ---
         autoOpenJupyter = "false";
         autoOpenFastHTML = "true";
@@ -879,6 +883,7 @@
           postsbCommand                # posts full markdown bodies (the b-twin of posts/postsc)
           bookCommand                  # The living book spine (dated slugs, newest first) for ! book
           brainCommand                 # 2nd Brain downloader/updater & spine (identical to book)
+          latestCommand                # Full markdown body of newest article(s) for ! latest
           latestCommand                # Full markdown body of newest article(s) for ! latest
           markovCommand                # Markov transition matrix + river streaming ML lens for ! markov
           swatCommand                  # 7-at-one-swat JSON dry-run lens for ! swat
